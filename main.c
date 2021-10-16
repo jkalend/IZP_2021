@@ -245,6 +245,9 @@ char sub_maker(const char * buffer, char * chains, int string_len, int u) {
     return *chains;
 }
 
+/*
+ * a loop going through the
+ */
 int rule4_loop(const char *buffer, const char *chains, int ekv, int string_len) {
     for (int o = string_len - 1; buffer[o] != '\n'; o++) { //looping over the password
         int match = 0;
