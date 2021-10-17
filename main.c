@@ -68,7 +68,7 @@ int control(const char *buffer, int argc, char *argv[], int bonus) {
     if (argc < 3){
         fprintf(stderr ,"Error 1: You entered less than 2 required parameters\n");
         return TRUE;
-    } else if (argc > 4 && bonus == 3 ) { //&&bonus != FALSE
+    } else if (argc > 4 && bonus == 3 ) {
         fprintf(stderr, "Error 9: You have entered more than 3 possible parameters\n");
         return 9;
     }
@@ -100,13 +100,16 @@ int control(const char *buffer, int argc, char *argv[], int bonus) {
  * This function is called by control() to check whether the password contained in buffer isn't longer than 100 symbols
  */
 int control_length(const char *buffer) {
+
     for (int i = 0; buffer[i] != '\0'; ++i) { //loop used to find out the actual length of the content of the buffer
         char a = buffer[i];
+
         if (i == 100 && a != '\n') { // checking for password longer than 100 symbols
             fprintf(stderr, "Error 3: Password <%s...> is longer than 100 symbols\n", buffer);
             return 3;
         }
     }
+
     return FALSE;
 }
 
@@ -119,6 +122,7 @@ int rule1(const char* buffer) {
     int acceptance; //variable holding overall acceptance of the password according to rule1
     int acceptance_small = 0; //variable storing information whether the password contains a lowercase letter
     int acceptance_big = 0; //variable storing information whether the password contains an uppercase letter
+
     for (i = 0; buffer[i] != '\0'; ++i) { //loop checking for presence of a lowercase letter
         if (buffer[i] >= 'a' && buffer[i] <= 'z') {
             acceptance_small++;
@@ -127,6 +131,7 @@ int rule1(const char* buffer) {
             acceptance_big++;
         }
     }
+
     if (acceptance_big > 0 && acceptance_small > 0) { //decision about overall acceptance of the password under rule 1
         acceptance = TRUE;
     } else {
@@ -143,7 +148,8 @@ int rule1(const char* buffer) {
  */
 int rule2 (const char* buffer, const char * PARAM) {
     int acceptance = FALSE;
-    if (*PARAM == '1' || *PARAM == '2') {
+
+    if (*PARAM == '1' || *PARAM == '2') { //even if password would contain only lowercase letters, such password would be stopped by rule1()
         return TRUE;
     }
 
@@ -163,6 +169,9 @@ int rule2 (const char* buffer, const char * PARAM) {
     return acceptance;
 }
 
+/*
+ * rule2_3() looks for numbers in a password
+ */
 int rule2_3 (const char *buffer, int *acceptance) {
     int a3 = FALSE;
     for (int i = 0; buffer[i] != '\0' && a3 == 0; ++i) {
@@ -176,10 +185,12 @@ int rule2_3 (const char *buffer, int *acceptance) {
     return *acceptance;
 }
 
+/*
+ * rule2_4() looks for special ASCII signs in a password
+ */
 int rule2_4 (const char *buffer, int *acceptance) {
     int a4 = FALSE;
-    for (int it = 0;
-         buffer[it] != '\n' && a4 == 0; ++it) { // checks for ASCII signs under codes 33-47, 58-67, 91-96, 123-126
+    for (int it = 0; buffer[it] != '\n' && a4 == 0; ++it) { // checks for ASCII signs under codes 33-47, 58-67, 91-96, 123-126
         if (buffer[it] >= ' ' && buffer[it] <= '/') {
             ++a4;
         }
@@ -193,9 +204,11 @@ int rule2_4 (const char *buffer, int *acceptance) {
             ++a4;
         }
     }
+
     if (a4 != FALSE ) {
         *acceptance = TRUE;
     }
+
     return *acceptance;
 }
 
@@ -217,6 +230,7 @@ int rule3(const char* buffer, const char * PARAM) {
 
         }
     }
+
     return acceptance;
 }
 
@@ -238,6 +252,7 @@ int rule4(const char* buffer, const char * PARAM) {
         ekv = 0;
         ekv = rule4_loop(buffer, chains, ekv, string_len);
     }
+
     if (ekv < 2) {
         return TRUE;
     } else {
@@ -254,6 +269,7 @@ int rule4_control(const char * buffer, int string_len) {
         if (max < string_len && buffer[max] == '\n')
             return FALSE;
     }
+
     return TRUE;
 }
 
@@ -269,11 +285,12 @@ char sub_maker(const char * buffer, char * chains, int string_len, int u) {
             chains[0] = '\0';
         }
     }
+
     return *chains;
 }
 
 /*
- * a loop going through the
+ * a loop going through the password looking for the same substring
  */
 int rule4_loop(const char *buffer, const char *chains, int ekv, int string_len) {
     for (int o = string_len - 1; buffer[o] != '\n'; o++) { //looping over the password
@@ -294,6 +311,7 @@ int rule4_loop(const char *buffer, const char *chains, int ekv, int string_len) 
             }
         }
     }
+
     return ekv;
 }
 
