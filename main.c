@@ -143,13 +143,13 @@ int rule2 (const char* buffer, const char * PARAM) {
     int a3 = FALSE;
     int a4 = FALSE;
     int acceptance = FALSE;
-    if (*PARAM == 50 || *PARAM == 49) {
+    if (*PARAM == '1' || *PARAM == '2') {
         return TRUE;
     }
 
-    if (*PARAM == 51 || *PARAM == '4') { //checking password for presence of at least 3 groups of requirements
+    if (*PARAM == '3' || *PARAM == '4') { //checking password for presence of at least 3 groups of requirements
         for (int i = 0; buffer[i] != '\0' && a3 == 0; ++i) {
-            if (buffer[i] >= 48 && buffer[i] <= 57) { //checking password for numbers
+            if (buffer[i] >= '0' && buffer[i] <= '9') { //checking password for numbers
                 ++a3;
             }
         }
@@ -158,19 +158,19 @@ int rule2 (const char* buffer, const char * PARAM) {
         }
     }
 
-    if (*PARAM == 52 || *PARAM == 51) { //checking password for presence of signs from all 4 groups
+    if (*PARAM == '3' || *PARAM == '4') { //checking password for presence of signs from all 4 groups
         for (int it = 0;
              buffer[it] != '\n' && a4 == 0; ++it) { // checks for ASCII signs under codes 33-47, 58-67, 91-96, 123-126
-            if (buffer[it] >= 32 && buffer[it] <= 47) {
+            if (buffer[it] >= ' ' && buffer[it] <= '/') {
                 ++a4;
             }
-            if (buffer[it] >= 58 && buffer[it] <= 64) {
+            if (buffer[it] >= ':' && buffer[it] <= '@') {
                 ++a4;
             }
-            if (buffer[it] >= 91 && buffer[it] <= 96) {
+            if (buffer[it] >= '[' && buffer[it] <= '`') {
                 ++a4;
             }
-            if (buffer[it] >= 123 && buffer[it] <= 126) {
+            if (buffer[it] >= '{' && buffer[it] <= '~') {
                 ++a4;
             }
         }
