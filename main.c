@@ -147,7 +147,7 @@ int rule2 (const char* buffer, const char * PARAM) {
         return TRUE;
     }
 
-    if (*PARAM == '3') { //checking password for presence of at least 3 groups of requirements by looking for both special symbols and numbers
+    if (*PARAM == '3') { //checking password for presence of at least 3 groups of requirements
         rule2_3(buffer, &acceptance);
         rule2_4(buffer, &acceptance);
     }
