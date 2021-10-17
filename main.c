@@ -38,6 +38,8 @@ int control_length(const char *);
 int rule4_control(const char *, int);
 char sub_maker(const char *, char *, int, int);
 int rule4_loop(const char *, const char *, int, int);
+int rule2_3(const char *, int *);
+int rule2_4(const char *, int *);
 
 // initialisation of global variables required for --stats
 int min = 100;
@@ -140,46 +142,61 @@ int rule1(const char* buffer) {
  * accordance to rule 2 up to PARAM value of 2 is decided by the return value of rule1()
  */
 int rule2 (const char* buffer, const char * PARAM) {
-    int a3 = FALSE;
-    int a4 = FALSE;
     int acceptance = FALSE;
     if (*PARAM == '1' || *PARAM == '2') {
         return TRUE;
     }
 
-    if (*PARAM == '3' || *PARAM == '4') { //checking password for presence of at least 3 groups of requirements
-        for (int i = 0; buffer[i] != '\0' && a3 == 0; ++i) {
-            if (buffer[i] >= '0' && buffer[i] <= '9') { //checking password for numbers
-                ++a3;
-            }
-        }
-        if (a3 != FALSE) {
-            acceptance++;
-        }
+    if (*PARAM == '3') { //checking password for presence of at least 3 groups of requirements
+        rule2_3(buffer, &acceptance);
+        rule2_4(buffer, &acceptance);
     }
 
-    if (*PARAM == '3' || *PARAM == '4') { //checking password for presence of signs from all 4 groups
-        for (int it = 0;
-             buffer[it] != '\n' && a4 == 0; ++it) { // checks for ASCII signs under codes 33-47, 58-67, 91-96, 123-126
-            if (buffer[it] >= ' ' && buffer[it] <= '/') {
-                ++a4;
-            }
-            if (buffer[it] >= ':' && buffer[it] <= '@') {
-                ++a4;
-            }
-            if (buffer[it] >= '[' && buffer[it] <= '`') {
-                ++a4;
-            }
-            if (buffer[it] >= '{' && buffer[it] <= '~') {
-                ++a4;
-            }
-        }
-        if (a4 != FALSE && a3 != FALSE) {
-            acceptance++;
+    if (*PARAM == '4') { //checking password for presence of signs from all 4 groups
+        int r23 = rule2_3(buffer, &acceptance);
+        int r24 = rule2_4(buffer, &acceptance);
+        if (!(r23 == TRUE && r24 == TRUE)) {
+            acceptance = FALSE;
         }
     }
 
     return acceptance;
+}
+
+int rule2_3 (const char *buffer, int *acceptance) {
+    int a3 = FALSE;
+    for (int i = 0; buffer[i] != '\0' && a3 == 0; ++i) {
+        if (buffer[i] >= '0' && buffer[i] <= '9') { //checking password for numbers
+            ++a3;
+        }
+    }
+    if (a3 != FALSE) {
+        *acceptance = TRUE;
+    }
+    return *acceptance;
+}
+
+int rule2_4 (const char *buffer, int *acceptance) {
+    int a4 = FALSE;
+    for (int it = 0;
+         buffer[it] != '\n' && a4 == 0; ++it) { // checks for ASCII signs under codes 33-47, 58-67, 91-96, 123-126
+        if (buffer[it] >= ' ' && buffer[it] <= '/') {
+            ++a4;
+        }
+        if (buffer[it] >= ':' && buffer[it] <= '@') {
+            ++a4;
+        }
+        if (buffer[it] >= '[' && buffer[it] <= '`') {
+            ++a4;
+        }
+        if (buffer[it] >= '{' && buffer[it] <= '~') {
+            ++a4;
+        }
+    }
+    if (a4 != FALSE ) {
+        *acceptance = TRUE;
+    }
+    return *acceptance;
 }
 
 /*
