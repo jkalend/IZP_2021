@@ -37,7 +37,7 @@ int stats_decide(int, char **, int, int);
 int control_length(const char *);
 int rule4_control(const char *, int);
 char sub_maker(const char *, char *, int, int);
-int rule4_loop(const char *, const char *, int, int);
+int rule4_loop(const char *, const char *, int *, int);
 int rule2_3(const char *, int *);
 int rule2_4(const char *, int *);
 
@@ -250,7 +250,7 @@ int rule4(const char* buffer, const char * PARAM) {
     for (int u = 0; buffer[u] != '\n' && ekv < 2; u++) {
         sub_maker(buffer, chains, string_len, u);
         ekv = 0;
-        ekv = rule4_loop(buffer, chains, ekv, string_len);
+        rule4_loop(buffer, chains, &ekv, string_len);
     }
 
     if (ekv < 2) {
@@ -292,7 +292,7 @@ char sub_maker(const char * buffer, char * chains, int string_len, int u) {
 /*
  * a loop going through the password looking for the same substring
  */
-int rule4_loop(const char *buffer, const char *chains, int ekv, int string_len) {
+int rule4_loop(const char *buffer, const char *chains, int *total_match, int string_len) {
     for (int o = string_len - 1; buffer[o] != '\n'; o++) { //looping over the password
         int match = 0;
         if (chains[string_len - 1] == buffer[o]) { //checks the location o for the presence of the last letter of the substring
@@ -306,22 +306,26 @@ int rule4_loop(const char *buffer, const char *chains, int ekv, int string_len) 
                     --d;
                 }
                 if (match == string_len) {
-                    ++ekv;
+                    *total_match += 1;
                 }
             }
         }
     }
 
-    return ekv;
+    return *total_match;
 }
 
+/*
+ * calls of individual security levels and their accompanied rules
+ */
 int print_call(const char *buffer, char LEVEL, const char * PARAM) {
     if (LEVEL == '1') {
-        int r1 = rule1(buffer);//calling of the function rule1, must be inside the loop to take the current buffer
-        if (r1 == TRUE) { // checking whether password is acceptable or not
+        int r1 = rule1(buffer);
+        if (r1 == TRUE) {
             printf("%s", buffer);
         }
-    } //rule 1
+    } //level 1
+
     if (LEVEL == '2' && strtol(PARAM, NULL, 10) <= 4) {
         int r1 = rule1(buffer);
         int r2 = rule2(buffer, PARAM);
@@ -329,7 +333,8 @@ int print_call(const char *buffer, char LEVEL, const char * PARAM) {
             printf("%s", buffer);
         }
 
-    } //rule 2
+    } //level 2
+
     if (LEVEL == '3' && strtol(PARAM, NULL, 10) <= 4) {
         int r1 = rule1(buffer);
         int r2 = rule2(buffer, PARAM);
@@ -337,7 +342,8 @@ int print_call(const char *buffer, char LEVEL, const char * PARAM) {
         if (r1 == TRUE && r2 == TRUE && r3 == TRUE) {
             printf("%s", buffer);
         }
-    } //rule 3
+    } //level 3
+
     if (LEVEL == '4' && strtol((const char *) PARAM, NULL, 10) <= 4) {
         int r1 = rule1(buffer);
         int r2 = rule2(buffer, PARAM);
@@ -346,23 +352,31 @@ int print_call(const char *buffer, char LEVEL, const char * PARAM) {
         if (r1 == TRUE && r2 == TRUE && r3 == TRUE && r4 == TRUE){
             printf("%s", buffer);
         }
-    } //rule 4
+    } //level 4
+
     return 0;
 }
 
+/*
+ * stats() is taking care of statistics when --stats is called
+ * print value decides when the statistics should be printed, value 1 is given when all passwords are parsed through
+ */
 int stats(const char *buffer, int NCHARS, bool chars[], int mi, int print) {
     int s1 = stats1(buffer, NCHARS, chars, print);
     int s2 = stats2(buffer, min);
     float s3 = stats3(buffer, total, avgc, print);
+
     if (s2 < mi) {
         min = s2;
     }
-    if (print == 1) {
+
+    if (print == TRUE) {
         printf("Statistika:\n");
         printf("Ruznych znaku: %d\n", s1);
         printf("Minimalni delka: %d\n", min);
         printf("Prumerna delka: %0.1f\n", s3);
     }
+
     return  0;
 }
 
@@ -372,8 +386,8 @@ int stats1(const char *buffer, int NCHARS, bool *chars, int print){
         if (chars[placeholder] == FALSE) {
             chars[placeholder] = TRUE;
         }
-
     }
+
     if (print == TRUE) {
         for (int o = 32; o < 127; ++o) {
             if (chars[o] == TRUE) {
@@ -381,27 +395,33 @@ int stats1(const char *buffer, int NCHARS, bool *chars, int print){
             }
         }
     }
+
     return  NCHARS;
 }
 
 int stats2(const char *buffer, int mi){
-    int i;
-    for (i = 0; buffer[i] != '\n'; ++i){}
+    int i = 0;
+
+    for (; buffer[i] != '\n'; ++i){}
     if (i < mi){
         mi = i;
     }
+
     return mi;
 }
 
 float stats3(const char *buffer, float TOTAL, float AVGC, int print){
     float SUM = 0;
     avgc++;
+
     for (int i = 0; buffer[i] != '\n'; ++i){
         total++;
     }
+
     if (print == 1) {
         SUM = TOTAL/AVGC;
     }
+
     return SUM;
 }
 
@@ -418,20 +438,25 @@ int password_browser(int argc, char ** argv, int count, int bonus) {
 
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) { //going through each password in stdin
         int c = control(buffer, argc, argv, bonus);
+
         if (c >= TRUE) {
             return c;
-        }
+        } else {
             PARAM = argv[2];
             LEVEL = *argv[1];
+        }
+
         if (count == STATS) {
             stats(buffer, NCHARS, chars, min, FALSE);
         }
 
         print_call(buffer, LEVEL, PARAM);
     }
+
     if (count == STATS) { //prints stats after all passwords are parsed through
         stats(buffer, NCHARS, chars, min, TRUE);
     }
+
     return 0;
 }
 
@@ -448,25 +473,27 @@ int stats_decide(int argc, char ** argv, int count, int bns){
             }
         }
     }
+
     int p = password_browser(argc, argv, count, bns);
+
     if(p > 0){
         return p;
     }
+
     return 0;
 }
 
 int bonus(int argc, char **argv) {
     int level = FALSE;
-    int *plevel = &level;
     int param = FALSE;
-    int *pparam = &param;
     bool stats = FALSE;
-    bool *pstats = &stats;
     int con = bonus_control(argc);
+
     if (con == TRUE) {
         return con;
     }
-    int bss = bonus_parse(argc, argv, plevel, pparam, pstats);
+
+    int bss = bonus_parse(argc, argv, &level, &param, &stats);
     if (bss != FALSE) {
         return bss;
     }
@@ -474,10 +501,13 @@ int bonus(int argc, char **argv) {
     if (level == FALSE && param == FALSE) {
         return 3;
     }
+
     bonus_decide(level, param, stats, argv);
+
     if (stats == TRUE) {
         return 2;
     }
+
     return 0;
 }
 
@@ -486,15 +516,17 @@ int bonus_control(int argc) {
         fprintf(stderr, "Error 1: You entered less than 2 required parameters\n");
         return TRUE;
     }
+
     return 0;
 }
 
-int bonus_parse (int argc, char **argv, int *level, int *param, bool *stats) {
+int bonus_parse (int argc, char **argv, int *level, int *param, bool *stats) { //FIXME more functions please!!
     for (int i = 0; i < argc; i++) {
-
         if (i > 0) {
+
             for (int d = 0; argv[i][d] != '\0'; d++) {
                 if (argv[i][d] == '-') {
+
                     if (argv[i][d+1] == 'l') {
                         if (argc < 4) {
                             fprintf(stderr, "Error 11: You have entered a switch after a switch\n");
@@ -527,13 +559,16 @@ int bonus_decide (int level, int param, bool stats, char **argv) {
     } else {
         argv[1] = "1";
     }
+
     if (param > 0) { //&& strtol((const char *) argv[param], NULL, 10) >= 1
         argv[2] = argv[param];
     } else {
         argv[2] = "1";
     }
+
     if (stats == TRUE) {
         argv[3] = "--stats"; //call stats
     }
+
     return 0;
 }
