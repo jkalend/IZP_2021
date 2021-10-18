@@ -28,10 +28,10 @@ int rule2(const char *, const char *);
 int rule3(const char *, const char *);
 int rule4(const char *, const char *);
 int print_call(const char *, char, const char *);
-int stats(const char *, int, bool [], int, int);
+int stats(const char *, int, bool [], int *, float *, float *, int);
 int stats1(const char *, int, bool [], int);
 int stats2(const char *, int);
-float stats3(const char *, float, float, int );
+float stats3(const char *, float *, float *, int );
 int password_browser(int argc, char ** argv, int, int);
 int stats_decide(int, char **, int, int);
 int control_length(const char *);
@@ -42,9 +42,9 @@ int rule2_3(const char *, int *);
 int rule2_4(const char *, int *);
 
 // initialisation of global variables required for --stats
-int min = 100;
-float avgc = 0;
-float total = 0;
+//int min = 100;
+//float avgc = 0;
+//float total = 0;
 
 int main(int argc, char *argv[]) {
     int count = 0;
@@ -361,19 +361,19 @@ int print_call(const char *buffer, char LEVEL, const char * PARAM) {
  * stats() is taking care of statistics when --stats is called
  * print value decides when the statistics should be printed, value 1 is given when all passwords are parsed through
  */
-int stats(const char *buffer, int NCHARS, bool chars[], int mi, int print) {
+int stats(const char *buffer, int NCHARS, bool chars[], int *min, float *avgc, float *total, int print) {
     int s1 = stats1(buffer, NCHARS, chars, print);
-    int s2 = stats2(buffer, min);
+    int s2 = stats2(buffer, *min);
     float s3 = stats3(buffer, total, avgc, print);
 
-    if (s2 < mi) {
-        min = s2;
+    if (s2 < *min) {
+        *min = s2;
     }
 
     if (print == TRUE) {
         printf("Statistika:\n");
         printf("Ruznych znaku: %d\n", s1);
-        printf("Minimalni delka: %d\n", min);
+        printf("Minimalni delka: %d\n", *min);
         printf("Prumerna delka: %0.1f\n", s3);
     }
 
@@ -381,17 +381,18 @@ int stats(const char *buffer, int NCHARS, bool chars[], int mi, int print) {
 }
 
 int stats1(const char *buffer, int NCHARS, bool *chars, int print){
-    for (int i = 0; buffer[i] != '\0'; ++i) {
-        int placeholder = (int) buffer[i];
-        if (chars[placeholder] == FALSE) {
-            chars[placeholder] = TRUE;
-        }
-    }
 
     if (print == TRUE) {
         for (int o = 32; o < 127; ++o) {
             if (chars[o] == TRUE) {
                 NCHARS++;
+            }
+        }
+    } else {
+        for (int i = 0; buffer[i] != '\0'; ++i) {
+            int placeholder = (int) buffer[i];
+            if (chars[placeholder] == FALSE) {
+                chars[placeholder] = TRUE;
             }
         }
     }
@@ -410,16 +411,16 @@ int stats2(const char *buffer, int mi){
     return mi;
 }
 
-float stats3(const char *buffer, float TOTAL, float AVGC, int print){
+float stats3(const char *buffer, float *TOTAL, float *AVGC, int print){
     float SUM = 0;
-    avgc++;
-
-    for (int i = 0; buffer[i] != '\n'; ++i){
-        total++;
-    }
 
     if (print == 1) {
-        SUM = TOTAL/AVGC;
+        SUM = *TOTAL / *AVGC;
+    } else {
+        *AVGC += 1;
+        for (int i = 0; buffer[i] != '\n'; ++i){
+            *TOTAL += 1;
+        }
     }
 
     return SUM;
@@ -431,6 +432,9 @@ int password_browser(int argc, char ** argv, int count, int bonus) {
     char LEVEL;
     bool chars['~'];
     int NCHARS = 0;
+    int min = 100;
+    float avgc = 0;
+    float total = 0;
 
     for (int t = 0; t != '~'; ++t) {
         chars[t] = FALSE;
@@ -447,14 +451,14 @@ int password_browser(int argc, char ** argv, int count, int bonus) {
         }
 
         if (count == STATS) {
-            stats(buffer, NCHARS, chars, min, FALSE);
+            stats(buffer, NCHARS, chars, &min, &avgc, &total, FALSE);
         }
 
         print_call(buffer, LEVEL, PARAM);
     }
 
     if (count == STATS) { //prints stats after all passwords are parsed through
-        stats(buffer, NCHARS, chars, min, TRUE);
+        stats(buffer, NCHARS, chars, &min, &avgc, &total, TRUE);
     }
 
     return 0;
