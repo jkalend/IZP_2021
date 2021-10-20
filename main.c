@@ -20,7 +20,7 @@ typedef struct {
     int acceptance1_lowercase;
     int acceptance1_uppercase;
     int accept_rule2_3;
-    char chains[6];
+    char chains[4];
     int ekv;
 } Acceptance;
 
@@ -46,8 +46,8 @@ int password_browser(int argc, char ** argv, int, int);
 int stats_decide(int, char **, int, int);
 int control_length(const char *);
 int rule4_control(const char *, long);
-Acceptance sub_maker(const char *, Acceptance *, long, int);
-Acceptance rule4_loop(const char *, Acceptance, long);
+void sub_maker(const char *, Acceptance *, long, int);
+void rule4_loop(const char *, Acceptance *, long);
 int rule2_3(const char *, int *);
 int rule2_4(const char *, int *);
 
@@ -255,9 +255,10 @@ int rule4(const char* buffer, const char * PARAM) {
 
     for (int u = 0; buffer[u] != '\n' && accept.ekv < 2; u++) {
         sub_maker(buffer, &accept, string_len, u);
-        printf("%s\n", accept.chains);
+        //printf("%s\n", accept.chains);
         accept.ekv = 0;
-        rule4_loop(buffer, accept, string_len);
+        rule4_loop(buffer, &accept, string_len);
+        //printf("%d\n", accept.ekv);
     }
 
     if (accept.ekv < 2) {
@@ -284,7 +285,7 @@ int rule4_control(const char * buffer, long string_len) {
  * a function with a loop for creation of a substring for comparison within rule4()
  * sub_maker() is called by rule4() every time it requires a new substring
  */
-Acceptance sub_maker(const char * buffer, Acceptance *accept, long string_len, int u) {
+void sub_maker(const char * buffer, Acceptance *accept, long string_len, int u) {
     for (int i = 0; string_len > i; i++) {
         if (buffer[i + u] != '\n') {
             accept->chains[i] = buffer[i + u];
@@ -292,21 +293,23 @@ Acceptance sub_maker(const char * buffer, Acceptance *accept, long string_len, i
             accept->chains[0] = '\0';
         }
     }
-    return *accept;
+    //printf("%s\n", accept->chains);
+    //return *accept;
 }
 
 /*
  * a loop going through the password looking for the same substring
  */
-Acceptance rule4_loop(const char *buffer, Acceptance accept, long string_len) {
+void rule4_loop(const char *buffer, Acceptance *accept, long string_len) {
+    //printf("%s\n", accept->chains);
     for (long o = string_len - 1; buffer[o] != '\n'; o++) { //looping over the password
         int match = 0;
 
-        if (accept.chains[string_len - 1] == buffer[o]) { //checks the location o for the presence of the last letter of the substring
+        if (accept->chains[string_len - 1] == buffer[o]) { //checks the location o for the presence of the last letter of the substring
             long d = string_len - 1; //for parsing through the substring
 
             for (long c = o; d > -1; --c) { // checks other letters in the substring
-                if (accept.chains[d] == buffer[c]) {
+                if (accept->chains[d] == buffer[c]) {
                     --d;
                     ++match;
                 } else {
@@ -314,29 +317,33 @@ Acceptance rule4_loop(const char *buffer, Acceptance accept, long string_len) {
                     --d;
                 }
                 if (match == string_len) {
-                    accept.ekv += 1;
+                    accept->ekv++;
                 }
             }
         }
     }
-
-    return accept;
+    //printf("%d\n", accept->ekv);
 }
 
 /*
  * calls of individual security levels and their accompanied rules
  */
 int print_call(const char *buffer, char LEVEL, const char * PARAM) {
+    int r1 = true;
+    int r2 = true;
+    int r3 = true;
+    int r4 = true;
+
     if (LEVEL == '1') {
-        int r1 = rule1(buffer);
+        r1 = rule1(buffer);
         if (r1 == true) {
             printf("%s", buffer);
         }
     } //level 1
 
     if (LEVEL == '2' && strtol(PARAM, NULL, 10) <= 4) {
-        int r1 = rule1(buffer);
-        int r2 = rule2(buffer, PARAM);
+        r1 = rule1(buffer);
+        r2 = rule2(buffer, PARAM);
         if (r1 == true && r2 == true) {
             printf("%s", buffer);
         }
@@ -344,19 +351,19 @@ int print_call(const char *buffer, char LEVEL, const char * PARAM) {
     } //level 2
 
     if (LEVEL == '3' && strtol(PARAM, NULL, 10) <= 4) {
-        int r1 = rule1(buffer);
-        int r2 = rule2(buffer, PARAM);
-        int r3 = rule3(buffer, PARAM);
+        r1 = rule1(buffer);
+        r2 = rule2(buffer, PARAM);
+        r3 = rule3(buffer, PARAM);
         if (r1 == true && r2 == true && r3 == true) {
             printf("%s", buffer);
         }
     } //level 3
 
     if (LEVEL == '4' && strtol((const char *) PARAM, NULL, 10) <= 4) {
-        int r1 = rule1(buffer);
-        int r2 = rule2(buffer, PARAM);
-        int r3 = rule3(buffer, PARAM);
-        int r4 = rule4(buffer, PARAM);
+        r1 = rule1(buffer);
+        r2 = rule2(buffer, PARAM);
+        r3 = rule3(buffer, PARAM);
+        r4 = rule4(buffer, PARAM);
         if (r1 == true && r2 == true && r3 == true && r4 == true){
             printf("%s", buffer);
         }
