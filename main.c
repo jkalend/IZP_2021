@@ -3,6 +3,7 @@
 //
 
 //TODO make data structs to make passing of arguments easier
+//FIXME -l 2 -p throws an error
 
 // including standard libraries
 #include <stdio.h>
@@ -32,12 +33,12 @@ int bonus(int, char **);
 int bonus_control(int);
 int bonus_parse(int, char **, int *, int *, bool *);
 int bonus_decide (int, int, bool, char **);
-int control(const char *, int, char **, int);
+int control(const char *, int, char **, int, long *, long *);
 int rule1(const char *);
-int rule2(const char *, const char *);
-int rule3(const char *, const char *);
-int rule4(const char *, const char *);
-int print_call(const char *, char, const char *);
+int rule2(const char *, long);
+int rule3(const char *, long);
+int rule4(const char *, long);
+int print_call(const char *, long, long);
 int stats(const char *, int, bool [], int *, float *, float *, int);
 int stats1(const char *, int, bool [], int);
 int stats2(const char *, int);
@@ -68,7 +69,7 @@ int main(int argc, char *argv[]) {
 /*
  * function control() checks number of arguments, their correctness and calls for a function control_length()
  */
-int control(const char *buffer, int argc, char *argv[], int bonus) {
+int control(const char *buffer, int argc, char *argv[], int bonus, long *PARAM, long *LEVEL) {
     char *b;
     char *c;
     if (argc < 3){
@@ -78,8 +79,8 @@ int control(const char *buffer, int argc, char *argv[], int bonus) {
         fprintf(stderr, "Error 9: You have entered more than 3 possible parameters\n");
         return 9;
     }
-    strtol((const char *) argv[1], &b, 10);
-    strtol((const char *) argv[2], &c, 10);
+    *LEVEL = strtol((const char *) argv[1], &b, 10);
+    *PARAM = strtol((const char *) argv[2], &c, 10);
 
     if (buffer[0] == '\n'){
         return false;
@@ -151,19 +152,19 @@ int rule1(const char* buffer) {
  * function rule2() is called by print_call() and uses the value of PARAM to decide how many groups have to be checked for
  * accordance to rule 2 up to PARAM value of 2 is decided by the return value of rule1()
  */
-int rule2 (const char* buffer, const char * PARAM) {
+int rule2 (const char* buffer, long PARAM) {
     Acceptance accept;
 
-    if (*PARAM == '1' || *PARAM == '2') { //even if password would contain only lowercase letters, such password would be stopped by rule1()
+    if (PARAM == 1 || PARAM == 2) { //even if password would contain only lowercase letters, such password would be stopped by rule1()
         return true;
     }
 
-    if (*PARAM == '3') { //checking password for presence of at least 3 groups of requirements by looking for both special symbols and numbers
+    if (PARAM == 3) { //checking password for presence of at least 3 groups of requirements by looking for both special symbols and numbers
         rule2_3(buffer, &accept.acceptance);
         rule2_4(buffer, &accept.acceptance);
     }
 
-    if (*PARAM == '4') { //checking password for presence of signs from all 4 groups
+    if (PARAM == 4) { //checking password for presence of signs from all 4 groups
         int r23 = rule2_3(buffer, &accept.acceptance);
         int r24 = rule2_4(buffer, &accept.acceptance);
         if (!(r23 == true && r24 == true)) {
@@ -221,7 +222,7 @@ int rule2_4 (const char *buffer, int *acceptance) {
  * rule 3 forbids passwords which contain a sequence of the same letters, length of this sequence is dictated by value of PARAM
  * function rule3() is called by print_call()
  */
-int rule3(const char* buffer, const char * PARAM) {
+int rule3(const char* buffer, long PARAM) {
     Acceptance accept;
     accept.acceptance = true;
     int letter_count = 1;
@@ -229,7 +230,7 @@ int rule3(const char* buffer, const char * PARAM) {
     for (int i = 0; buffer[i] != '\0'; ++i) {
         if (i > 0 && buffer[i] == buffer[i-1]) {
             letter_count++;
-        } else if (letter_count >= (strtol(PARAM, NULL, 10))){
+        } else if (letter_count >= PARAM){
             accept.acceptance = false;
             return accept.acceptance;
 
@@ -243,8 +244,8 @@ int rule3(const char* buffer, const char * PARAM) {
  * rule 4 forbids passwords which contain a 2 or more instances of any substring of a length set by the value PARAM
  * function rule3() is called by print_call()
  */
-int rule4(const char* buffer, const char * PARAM) {
-    long string_len = strtol(PARAM, NULL, 10);
+int rule4(const char* buffer, long PARAM) {
+    long string_len = PARAM;
     Acceptance accept;
     accept.ekv = 0;
 
@@ -255,10 +256,8 @@ int rule4(const char* buffer, const char * PARAM) {
 
     for (int u = 0; buffer[u] != '\n' && accept.ekv < 2; u++) {
         sub_maker(buffer, &accept, string_len, u);
-        //printf("%s\n", accept.chains);
         accept.ekv = 0;
         rule4_loop(buffer, &accept, string_len);
-        //printf("%d\n", accept.ekv);
     }
 
     if (accept.ekv < 2) {
@@ -293,8 +292,6 @@ void sub_maker(const char * buffer, Acceptance *accept, long string_len, int u) 
             accept->chains[0] = '\0';
         }
     }
-    //printf("%s\n", accept->chains);
-    //return *accept;
 }
 
 /*
@@ -322,26 +319,25 @@ void rule4_loop(const char *buffer, Acceptance *accept, long string_len) {
             }
         }
     }
-    //printf("%d\n", accept->ekv);
 }
 
 /*
  * calls of individual security levels and their accompanied rules
  */
-int print_call(const char *buffer, char LEVEL, const char * PARAM) {
+int print_call(const char *buffer, long LEVEL, long PARAM) {
     int r1 = true;
     int r2 = true;
     int r3 = true;
     int r4 = true;
 
-    if (LEVEL == '1') {
+    if (LEVEL == 1) {
         r1 = rule1(buffer);
         if (r1 == true) {
             printf("%s", buffer);
         }
     } //level 1
 
-    if (LEVEL == '2' && strtol(PARAM, NULL, 10) <= 4) {
+    if (LEVEL == 2 && PARAM <= 4) {
         r1 = rule1(buffer);
         r2 = rule2(buffer, PARAM);
         if (r1 == true && r2 == true) {
@@ -350,7 +346,7 @@ int print_call(const char *buffer, char LEVEL, const char * PARAM) {
 
     } //level 2
 
-    if (LEVEL == '3' && strtol(PARAM, NULL, 10) <= 4) {
+    if (LEVEL == 3 && PARAM <= 4) {
         r1 = rule1(buffer);
         r2 = rule2(buffer, PARAM);
         r3 = rule3(buffer, PARAM);
@@ -359,7 +355,7 @@ int print_call(const char *buffer, char LEVEL, const char * PARAM) {
         }
     } //level 3
 
-    if (LEVEL == '4' && strtol((const char *) PARAM, NULL, 10) <= 4) {
+    if (LEVEL == 4 && PARAM <= 4) {
         r1 = rule1(buffer);
         r2 = rule2(buffer, PARAM);
         r3 = rule3(buffer, PARAM);
@@ -448,8 +444,8 @@ float stats3(const char *buffer, float *TOTAL, float *AVGC, int print){
 
 int password_browser(int argc, char ** argv, int count, int bonus) {
     char buffer[MAX_STRING_SIZE];
-    char *PARAM;
-    char LEVEL;
+    long PARAM;
+    long LEVEL;
     bool chars['~'] = {0};
     int NCHARS = 0;
     int min = 100;
@@ -457,13 +453,10 @@ int password_browser(int argc, char ** argv, int count, int bonus) {
     float total = 0;
 
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) { //going through each password in stdin
-        int c = control(buffer, argc, argv, bonus);
+        int c = control(buffer, argc, argv, bonus, &PARAM, &LEVEL);
 
         if (c >= true) {
             return c;
-        } else {
-            PARAM = argv[2];
-            LEVEL = *argv[1];
         }
 
         if (count == STATS) {
@@ -474,7 +467,7 @@ int password_browser(int argc, char ** argv, int count, int bonus) {
     }
 
     if (count == STATS) { //prints stats after all passwords are parsed through
-        stats(buffer, NCHARS, chars, &min, &avgc, &total, true);
+        stats(buffer, NCHARS, chars, &min, &avgc, &total, true); //FIXME structs pls
     }
 
     return 0;
