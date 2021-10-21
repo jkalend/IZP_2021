@@ -25,26 +25,35 @@ typedef struct {
     int ekv;
 } Acceptance;
 
+typedef struct {
+    bool stats;
+    int NCHARS;
+    int min;
+    float avgc;
+    float total;
+    int print;
+    float sum;
+} Stats;
+
 
 /*
  * declaring multiple functions
  */
-int bonus(int, char **);
+int bonus(int, char **, Stats *);
 int bonus_control(int);
-int bonus_parse(int, char **, int *, int *, bool *);
-int bonus_decide (int, int, bool, char **);
+int bonus_parse(int, char **, int *, int *, Stats *);
+int bonus_decide (int, int, Stats, char **);
 int control(const char *, int, char **, int, long *, long *);
 int rule1(const char *);
 int rule2(const char *, long);
 int rule3(const char *, long);
 int rule4(const char *, long);
 int print_call(const char *, long, long);
-int stats(const char *, int, bool [], int *, float *, float *, int);
-int stats1(const char *, int, bool [], int);
-int stats2(const char *, int);
-float stats3(const char *, float *, float *, int );
-int password_browser(int argc, char ** argv, int, int);
-int stats_decide(int, char **, int, int);
+int stats(const char *, Stats *, bool []);
+void stats1(const char *, Stats *, bool []);
+void stats2(const char *, Stats *);
+int password_browser(int argc, char ** argv, int, int, Stats *);
+int stats_decide(int, char **, int, int, Stats *);
 int control_length(const char *);
 int rule4_control(const char *, long);
 void sub_maker(const char *, Acceptance *, long, int);
@@ -55,11 +64,12 @@ int rule2_4(const char *, int *);
 
 int main(int argc, char *argv[]) {
     int count = 0;
-    int bns = bonus(argc, argv);
-    if (bns == true || bns == 10 || bns == 11) {
+    Stats stat;
+    int bns = bonus(argc, argv, &stat);
+    if (bns == true || bns >= 10) {
         return bns;
     }
-    int sd = stats_decide(argc, argv, count, bns);
+    int sd = stats_decide(argc, argv, count, bns, &stat);
     if (sd != false) {
         return sd;
     }
@@ -372,33 +382,29 @@ int print_call(const char *buffer, long LEVEL, long PARAM) {
  * stats() is taking care of statistics when --stats is called
  * print value decides when the statistics should be printed, value 1 is given when all passwords are parsed through
  */
-int stats(const char *buffer, int NCHARS, bool chars[], int *min, float *avgc, float *total, int print) {
-    int s1 = stats1(buffer, NCHARS, chars, print);
-    int s2 = stats2(buffer, *min);
-    float s3 = stats3(buffer, total, avgc, print);
+int stats(const char *buffer, Stats *stat, bool chars[]) {
+    stats1(buffer, stat, chars);
+    stats2(buffer, stat);
 
-    if (s2 < *min) {
-        *min = s2;
-    }
-
-    if (print == true) {
+    if (stat->print == true) {
         printf("Statistika:\n");
-        printf("Ruznych znaku: %d\n", s1);
-        printf("Minimalni delka: %d\n", *min);
-        printf("Prumerna delka: %0.1f\n", s3);
+        printf("Ruznych znaku: %d\n", stat->NCHARS);
+        printf("Minimalni delka: %d\n", stat->min);
+        printf("Prumerna delka: %0.1f\n", stat->sum);
     }
 
     return  0;
 }
+
 /*
  * stats1() records number of unique characters among all passwords by modifying the chars bool array
  */
-int stats1(const char *buffer, int NCHARS, bool *chars, int print){
+void stats1(const char *buffer, Stats *stat, bool *chars) {
 
-    if (print == true) {
+    if (stat->print == true) {
         for (int o = 32; o < 127; ++o) {
             if (chars[o] == true) {
-                NCHARS++;
+                stat->NCHARS++;
             }
         }
     } else {
@@ -409,48 +415,36 @@ int stats1(const char *buffer, int NCHARS, bool *chars, int print){
             }
         }
     }
-
-    return  NCHARS;
 }
+
 /*
  * stats2() counts number of characters in a password and compares it with the current minimum
  * if the current password is shorter, the min value is overwritten
+ * it also saves the total number of letters in each password into stat->total
+ * and then uses stat->total and stat->avgc to calculate average length of all passwords
  */
-int stats2(const char *buffer, int min){
+void stats2(const char *buffer, Stats *stat) {
     int i = 0;
 
-    for (; buffer[i] != '\n'; ++i){}
-    if (i < min){
-        min = i;
+    for (; buffer[i] != '\n'; i++){
+        stat->total += 1;
+    }
+    stat->avgc += 1;
+    if (i < stat->min){
+        stat->min = i;
     }
 
-    return min;
-}
-
-float stats3(const char *buffer, float *TOTAL, float *AVGC, int print){
-    float SUM = 0;
-
-    if (print == 1) {
-        SUM = *TOTAL / *AVGC;
-    } else {
-        *AVGC += 1;
-        for (int i = 0; buffer[i] != '\n'; ++i){
-            *TOTAL += 1;
-        }
+    if (stat->print == true) {
+        stat->sum = stat->total / stat->avgc;
     }
-
-    return SUM;
 }
 
-int password_browser(int argc, char ** argv, int count, int bonus) {
+int password_browser(int argc, char ** argv, int count, int bonus, Stats *stat) {
     char buffer[MAX_STRING_SIZE];
     long PARAM;
     long LEVEL;
     bool chars['~'] = {0};
-    int NCHARS = 0;
-    int min = 100;
-    float avgc = 0;
-    float total = 0;
+    stat->min = 100;
 
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) { //going through each password in stdin
         int c = control(buffer, argc, argv, bonus, &PARAM, &LEVEL);
@@ -459,24 +453,25 @@ int password_browser(int argc, char ** argv, int count, int bonus) {
             return c;
         }
 
-        if (count == STATS) {
-            stats(buffer, NCHARS, chars, &min, &avgc, &total, false);
+        if (count == STATS) { //2nd layer of checking for --stats
+            stats(buffer, stat, chars);
         }
 
         print_call(buffer, LEVEL, PARAM);
     }
 
     if (count == STATS) { //prints stats after all passwords are parsed through
-        stats(buffer, NCHARS, chars, &min, &avgc, &total, true); //FIXME structs pls
+        stat->print = true;
+        stats(buffer, stat, chars);
     }
 
     return 0;
 }
 
-int stats_decide(int argc, char ** argv, int count, int bns){
+int stats_decide(int argc, char ** argv, int count, int bns, Stats *stat) {
     char sts[STATS_LEN] = "--stats";
 
-    if (argc == 4 || bns == 2) {
+    if ((argc == 4 || bns == 2) && stat->stats == true) {
         for (int pp = 0; argv[STATS_NUMBER][pp] != '\0'; ++pp) {
             if (sts[pp] == argv[STATS_NUMBER][pp]) {
                 count++;
@@ -487,26 +482,26 @@ int stats_decide(int argc, char ** argv, int count, int bns){
         }
     }
 
-    int p = password_browser(argc, argv, count, bns);
+    int p = password_browser(argc, argv, count, bns, stat);
 
-    if(p > 0){
+    if (p > 0) {
         return p;
     }
 
     return 0;
 }
 
-int bonus(int argc, char **argv) {
+int bonus(int argc, char **argv, Stats *stat) {
     int level = false;
     int param = false;
-    bool stats = false;
+    stat->stats = false;
     int con = bonus_control(argc);
 
     if (con == true) {
         return con;
     }
 
-    int bss = bonus_parse(argc, argv, &level, &param, &stats);
+    int bss = bonus_parse(argc, argv, &level, &param, stat);
     if (bss != false) {
         return bss;
     }
@@ -515,9 +510,9 @@ int bonus(int argc, char **argv) {
         return 3;
     }
 
-    bonus_decide(level, param, stats, argv);
+    bonus_decide(level, param, *stat, argv);
 
-    if (stats == true) {
+    if (stat->stats == true) {
         return 2;
     }
 
@@ -533,7 +528,7 @@ int bonus_control(int argc) {
     return 0;
 }
 
-int bonus_parse (int argc, char **argv, int *level, int *param, bool *stats) { //FIXME more functions please!!
+int bonus_parse (int argc, char **argv, int *level, int *param, Stats *stats) { //FIXME more functions please!!
     for (int i = 0; i < argc; i++) {
         if (i > 0) {
 
@@ -541,19 +536,27 @@ int bonus_parse (int argc, char **argv, int *level, int *param, bool *stats) { /
                 if (argv[i][d] == '-') {
 
                     if (argv[i][d+1] == 'l') {
-                        if (argc < 4) {
+                        if (argv[i+1][d] == '-') {
                             fprintf(stderr, "Error 11: You have entered a switch after a switch\n");
                             return 11;
                         }
                         *level = i+1;
+
                     } else if (argv[i][d+1] == 'p' ) {
-                        if (argc < 4) {
+                        if (i+1 == argc) { //
+                            fprintf(stderr, "Error 12: You have entered a -p switch without a value\n");
+                            return 12;
+                        }
+                        if (argv[i+1][d] == '-') {
                             fprintf(stderr, "Error 11: You have entered a switch after a switch\n");
                             return 11;
-                        }
+                        } /*else if (argc == 4) {
+                            break;
+                        }*/
                         *param = i+1;
+
                     } else if (argv[i][d+1] == '-' && argv[i][d+2] == 's'){
-                        *stats = true;
+                        stats->stats = true;
                         break;
                     } else {
                         fprintf(stderr, "Error 10: You have entered a nonexistent switch\n");
@@ -566,20 +569,20 @@ int bonus_parse (int argc, char **argv, int *level, int *param, bool *stats) { /
     return 0;
 }
 
-int bonus_decide (int level, int param, bool stats, char **argv) {
-    if (level > 0) { // && *argv[level] >= '1' && *argv[level] <= '4'
+int bonus_decide (int level, int param, Stats stats, char **argv) {
+    if (level > 0) {
         argv[1] = argv[level];
     } else {
         argv[1] = "1";
     }
 
-    if (param > 0) { //&& strtol((const char *) argv[param], NULL, 10) >= 1
+    if (param > 0) {
         argv[2] = argv[param];
     } else {
         argv[2] = "1";
     }
 
-    if (stats == true) {
+    if (stats.stats == true) {
         argv[3] = "--stats"; //call stats
     }
 
