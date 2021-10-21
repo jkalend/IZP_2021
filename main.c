@@ -20,7 +20,7 @@ typedef struct {
     int acceptance1_lowercase;
     int acceptance1_uppercase;
     int accept_rule2_3;
-    char chains[4];
+    //char chains[100];
     int ekv;
 } Acceptance;
 
@@ -47,8 +47,8 @@ int rule2_4(const char *, Acceptance *);
 int rule3(const char *, long, Acceptance *);
 int rule4(const char *, long, Acceptance *);
 int rule4_control(const char *, long);
-void sub_maker(const char *, Acceptance *, long, int);
-void rule4_loop(const char *, Acceptance *, long);
+void sub_maker(const char *, long, int, char *);
+void rule4_loop(const char *, Acceptance *, long, const char *);
 int print_call(const char *, long, long, Acceptance *);
 int stats(const char *, Stats *, bool []);
 void stats1(const char *, Stats *, bool []);
@@ -180,7 +180,7 @@ int rule2 (const char* buffer, long PARAM, Acceptance *accept) {
         }
     }
 
-    if (PARAM == 4 ) { //checking password for presence of signs from all 4 groups
+    if (PARAM >= 4 ) { //checking password for presence of signs from all 4 groups
         r23 = rule2_3(buffer, accept);
         r24 = rule2_4(buffer, accept);
         if (!(r23 == true && r24 == true)) {
@@ -245,7 +245,8 @@ int rule3(const char* buffer, long PARAM, Acceptance *accept) {
         } else if (letter_count >= PARAM){
             accept->acceptance = false;
             return accept->acceptance;
-
+        } else {
+            letter_count = 1;
         }
     }
 
@@ -257,20 +258,21 @@ int rule3(const char* buffer, long PARAM, Acceptance *accept) {
  * function rule3() is called by print_call()
  */
 int rule4(const char* buffer, long PARAM, Acceptance *accept) {
+    char chains[102] = {0};
     if (accept->acceptance == false) {
         return false;
     }
     long string_len = PARAM;
     accept->ekv = 0;
 
-    if (rule4_control(buffer, string_len) == false) {
-        return false;
+    if (rule4_control(buffer, string_len) == true) {
+        return true;
     }
 
     for (int u = 0; buffer[u] != '\n' && accept->ekv < 2; u++) {
-        sub_maker(buffer, accept, string_len, u);
+        sub_maker(buffer, string_len, u, chains);
         accept->ekv = 0;
-        rule4_loop(buffer, accept, string_len);
+        rule4_loop(buffer, accept, string_len, chains);
     }
 
     if (accept->ekv < 2) {
@@ -287,22 +289,22 @@ int rule4(const char* buffer, long PARAM, Acceptance *accept) {
 int rule4_control(const char * buffer, long string_len) {
     for (int max  = 0; buffer[max] != '\0' && max < string_len; max++) {
         if (max < string_len && buffer[max] == '\n')
-            return false;
+            return true;
     }
 
-    return true;
+    return false;
 }
 
 /*
  * a function with a loop for creation of a substring for comparison within rule4()
  * sub_maker() is called by rule4() every time it requires a new substring
  */
-void sub_maker(const char * buffer, Acceptance *accept, long string_len, int u) {
+void sub_maker(const char * buffer, long string_len, int u, char * chains) {
     for (int i = 0; string_len > i; i++) {
         if (buffer[i + u] != '\n') {
-            accept->chains[i] = buffer[i + u];
+            chains[i] = buffer[i + u];
         } else {
-            accept->chains[0] = '\0';
+            chains[0] = '\0';
         }
     }
 }
@@ -310,16 +312,16 @@ void sub_maker(const char * buffer, Acceptance *accept, long string_len, int u) 
 /*
  * a loop going through the password looking for the same substring
  */
-void rule4_loop(const char *buffer, Acceptance *accept, long string_len) {
+void rule4_loop(const char *buffer, Acceptance *accept, long string_len, const char * chains) {
     //printf("%s\n", accept->chains);
     for (long o = string_len - 1; buffer[o] != '\n'; o++) { //looping over the password
         int match = 0;
 
-        if (accept->chains[string_len - 1] == buffer[o]) { //checks the location o for the presence of the last letter of the substring
+        if (chains[string_len - 1] == buffer[o]) { //checks the location o for the presence of the last letter of the substring
             long d = string_len - 1; //for parsing through the substring
 
             for (long c = o; d > -1; c--) { // checks other letters in the substring
-                if (accept->chains[d] == buffer[c]) {
+                if (chains[d] == buffer[c]) {
                     d--;
                     match++;
                 } else {
@@ -350,7 +352,7 @@ int print_call(const char *buffer, long LEVEL, long PARAM, Acceptance *acceptanc
         }
     } //level 1
 
-    if (LEVEL == 2 && PARAM <= 4) {
+    if (LEVEL == 2) {
         r1 = rule1(buffer, acceptance);
         r2 = rule2(buffer, PARAM, acceptance);
         if (r1 == true && r2 == true) {
@@ -359,7 +361,7 @@ int print_call(const char *buffer, long LEVEL, long PARAM, Acceptance *acceptanc
 
     } //level 2
 
-    if (LEVEL == 3 && PARAM <= 4) {
+    if (LEVEL == 3) {
         r1 = rule1(buffer, acceptance);
         r2 = rule2(buffer, PARAM, acceptance);
         r3 = rule3(buffer, PARAM, acceptance);
@@ -368,7 +370,7 @@ int print_call(const char *buffer, long LEVEL, long PARAM, Acceptance *acceptanc
         }
     } //level 3
 
-    if (LEVEL == 4 && PARAM <= 4) {
+    if (LEVEL == 4) {
         r1 = rule1(buffer, acceptance);
         r2 = rule2(buffer, PARAM, acceptance);
         r3 = rule3(buffer, PARAM, acceptance);
