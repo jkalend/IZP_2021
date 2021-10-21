@@ -3,7 +3,7 @@
 //
 
 //TODO make data structs to make passing of arguments easier
-//FIXME empty returns SIGSEGV
+//FIXME rule 2 broke?, check param and the function itself
 
 // including standard libraries
 #include <stdio.h>
@@ -40,16 +40,16 @@ typedef struct {
  */
 int control(const char *, char **, long *, long *);
 int control_length(const char *);
-int rule1(const char *);
-int rule2(const char *, long);
-int rule2_3(const char *, int *);
-int rule2_4(const char *, int *);
-int rule3(const char *, long);
-int rule4(const char *, long);
+int rule1(const char *, Acceptance *);
+int rule2(const char *, long, Acceptance *);
+int rule2_3(const char *, Acceptance *);
+int rule2_4(const char *, Acceptance *);
+int rule3(const char *, long, Acceptance *);
+int rule4(const char *, long, Acceptance *);
 int rule4_control(const char *, long);
 void sub_maker(const char *, Acceptance *, long, int);
 void rule4_loop(const char *, Acceptance *, long);
-int print_call(const char *, long, long);
+int print_call(const char *, long, long, Acceptance *);
 int stats(const char *, Stats *, bool []);
 void stats1(const char *, Stats *, bool []);
 void stats2(const char *, Stats *);
@@ -134,27 +134,26 @@ int control_length(const char *buffer) {
  * rule 1 dictates that the password has to contain at least 1 lowercase and 1 uppercase letter
  * function rule1() is called by print_call() and loops through buffer to decide about correctness of the password under rule 1
  */
-int rule1(const char* buffer) {
-    Acceptance accept;
-    accept.acceptance1_lowercase = 0;
-    accept.acceptance1_uppercase = 0;
+int rule1(const char* buffer, Acceptance *accept) {
+    accept->acceptance1_lowercase = 0;
+    accept->acceptance1_uppercase = 0;
 
     for (int i = 0; buffer[i] != '\0'; ++i) { //loop checking for presence of a lowercase letter
         if (buffer[i] >= 'a' && buffer[i] <= 'z') {
-            accept.acceptance1_lowercase++;
+            accept->acceptance1_lowercase++;
         }
         if (buffer[i] >= 'A' && buffer[i] <= 'Z') { //loop checking for presence of an uppercase letter
-            accept.acceptance1_uppercase++;
+            accept->acceptance1_uppercase++;
         }
     }
 
-    if (accept.acceptance1_uppercase > 0 && accept.acceptance1_lowercase > 0) { //decision about overall acceptance of the password under rule 1
-        accept.acceptance = true;
+    if (accept->acceptance1_uppercase > 0 && accept->acceptance1_lowercase > 0) { //decision about overall acceptance of the password under rule 1
+        accept->acceptance = true;
     } else {
-        accept.acceptance = false;
+        accept->acceptance = false;
     }
 
-    return accept.acceptance;
+    return accept->acceptance;
 }
 
 /*
@@ -162,115 +161,119 @@ int rule1(const char* buffer) {
  * function rule2() is called by print_call() and uses the value of PARAM to decide how many groups have to be checked for
  * accordance to rule 2 up to PARAM value of 2 is decided by the return value of rule1()
  */
-int rule2 (const char* buffer, long PARAM) {
-    Acceptance accept;
+int rule2 (const char* buffer, long PARAM, Acceptance *accept) {
+    if (accept->acceptance == false) {
+        return false;
+    }
+    int r23;
+    int r24;
 
     if (PARAM == 1 || PARAM == 2) { //even if password would contain only lowercase letters, such password would be stopped by rule1()
         return true;
     }
 
     if (PARAM == 3) { //checking password for presence of at least 3 groups of requirements by looking for both special symbols and numbers
-        rule2_3(buffer, &accept.acceptance);
-        rule2_4(buffer, &accept.acceptance);
-    }
-
-    if (PARAM == 4) { //checking password for presence of signs from all 4 groups
-        int r23 = rule2_3(buffer, &accept.acceptance);
-        int r24 = rule2_4(buffer, &accept.acceptance);
-        if (!(r23 == true && r24 == true)) {
-            accept.acceptance = false;
+        r23 = rule2_3(buffer, accept);
+        r24 = rule2_4(buffer, accept);
+        if (r23 == true || r24 == true) {
+            accept->acceptance = true;
         }
     }
 
-    return accept.acceptance;
+    if (PARAM == 4 ) { //checking password for presence of signs from all 4 groups
+        r23 = rule2_3(buffer, accept);
+        r24 = rule2_4(buffer, accept);
+        if (!(r23 == true && r24 == true)) {
+            accept->acceptance = false;
+        }
+    }
+
+    return accept->acceptance;
 }
 
 /*
  * rule2_3() looks for numbers in a password
  */
-int rule2_3 (const char *buffer, int *acceptance) {
-    int r23 = false;
-    for (int i = 0; buffer[i] != '\0' && r23 == false; ++i) {
+int rule2_3 (const char *buffer, Acceptance *accept) {
+    accept->acceptance = false;
+    for (int i = 0; buffer[i] != '\0' && accept->acceptance == false; ++i) {
         if (buffer[i] >= '0' && buffer[i] <= '9') { //checking password for numbers
-            r23 = true;
+            accept->acceptance = true;
         }
     }
-    if (r23 != false) {
-        *acceptance = true;
-    }
-    return *acceptance;
+
+    return accept->acceptance;
 }
 
 /*
  * rule2_4() looks for special ASCII signs in a password
  */
-int rule2_4 (const char *buffer, int *acceptance) {
-    int r24 = false;
-    for (int i = 0; buffer[i] != '\n' && r24 == false; i++) { // checks for ASCII signs under codes 33-47, 58-67, 91-96, 123-126
+int rule2_4 (const char *buffer, Acceptance *accept) {
+    accept->acceptance = false;
+    for (int i = 0; buffer[i] != '\n' && accept->acceptance == false; i++) { // checks for ASCII signs under codes 33-47, 58-67, 91-96, 123-126
         if (buffer[i] >= ' ' && buffer[i] <= '/') {
-            r24 = true;
+            accept->acceptance = true;
         }
         if (buffer[i] >= ':' && buffer[i] <= '@') {
-            r24 = true;
+            accept->acceptance = true;
         }
         if (buffer[i] >= '[' && buffer[i] <= '`') {
-            r24 = true;
+            accept->acceptance = true;
         }
         if (buffer[i] >= '{' && buffer[i] <= '~') {
-            r24 = true;
+            accept->acceptance = true;
         }
     }
 
-    if (r24 != false ) {
-        *acceptance = true;
-    }
-
-    return *acceptance;
+    return accept->acceptance;
 }
 
 /*
  * rule 3 forbids passwords which contain a sequence of the same letters, length of this sequence is dictated by value of PARAM
  * function rule3() is called by print_call()
  */
-int rule3(const char* buffer, long PARAM) {
-    Acceptance accept;
-    accept.acceptance = true;
+int rule3(const char* buffer, long PARAM, Acceptance *accept) {
+    if (accept->acceptance == false) {
+        return false;
+    }
+    accept->acceptance = true;
     int letter_count = 1;
 
     for (int i = 0; buffer[i] != '\0'; ++i) {
         if (i > 0 && buffer[i] == buffer[i-1]) {
             letter_count++;
         } else if (letter_count >= PARAM){
-            accept.acceptance = false;
-            return accept.acceptance;
+            accept->acceptance = false;
+            return accept->acceptance;
 
         }
     }
 
-    return accept.acceptance;
+    return accept->acceptance;
 }
 
 /*
  * rule 4 forbids passwords which contain a 2 or more instances of any substring of a length set by the value PARAM
  * function rule3() is called by print_call()
  */
-int rule4(const char* buffer, long PARAM) {
+int rule4(const char* buffer, long PARAM, Acceptance *accept) {
+    if (accept->acceptance == false) {
+        return false;
+    }
     long string_len = PARAM;
-    Acceptance accept;
-    accept.ekv = 0;
-
+    accept->ekv = 0;
 
     if (rule4_control(buffer, string_len) == false) {
         return false;
     }
 
-    for (int u = 0; buffer[u] != '\n' && accept.ekv < 2; u++) {
-        sub_maker(buffer, &accept, string_len, u);
-        accept.ekv = 0;
-        rule4_loop(buffer, &accept, string_len);
+    for (int u = 0; buffer[u] != '\n' && accept->ekv < 2; u++) {
+        sub_maker(buffer, accept, string_len, u);
+        accept->ekv = 0;
+        rule4_loop(buffer, accept, string_len);
     }
 
-    if (accept.ekv < 2) {
+    if (accept->ekv < 2) {
         return true;
     } else {
         return false;
@@ -334,22 +337,22 @@ void rule4_loop(const char *buffer, Acceptance *accept, long string_len) {
 /*
  * calls of individual security levels and their accompanied rules
  */
-int print_call(const char *buffer, long LEVEL, long PARAM) {
+int print_call(const char *buffer, long LEVEL, long PARAM, Acceptance *acceptance) {
     int r1 = true;
     int r2 = true;
     int r3 = true;
     int r4 = true;
 
     if (LEVEL == 1) {
-        r1 = rule1(buffer);
+        r1 = rule1(buffer, acceptance);
         if (r1 == true) {
             printf("%s", buffer);
         }
     } //level 1
 
     if (LEVEL == 2 && PARAM <= 4) {
-        r1 = rule1(buffer);
-        r2 = rule2(buffer, PARAM);
+        r1 = rule1(buffer, acceptance);
+        r2 = rule2(buffer, PARAM, acceptance);
         if (r1 == true && r2 == true) {
             printf("%s", buffer);
         }
@@ -357,19 +360,19 @@ int print_call(const char *buffer, long LEVEL, long PARAM) {
     } //level 2
 
     if (LEVEL == 3 && PARAM <= 4) {
-        r1 = rule1(buffer);
-        r2 = rule2(buffer, PARAM);
-        r3 = rule3(buffer, PARAM);
+        r1 = rule1(buffer, acceptance);
+        r2 = rule2(buffer, PARAM, acceptance);
+        r3 = rule3(buffer, PARAM, acceptance);
         if (r1 == true && r2 == true && r3 == true) {
             printf("%s", buffer);
         }
     } //level 3
 
     if (LEVEL == 4 && PARAM <= 4) {
-        r1 = rule1(buffer);
-        r2 = rule2(buffer, PARAM);
-        r3 = rule3(buffer, PARAM);
-        r4 = rule4(buffer, PARAM);
+        r1 = rule1(buffer, acceptance);
+        r2 = rule2(buffer, PARAM, acceptance);
+        r3 = rule3(buffer, PARAM, acceptance);
+        r4 = rule4(buffer, PARAM, acceptance);
         if (r1 == true && r2 == true && r3 == true && r4 == true){
             printf("%s", buffer);
         }
@@ -426,16 +429,17 @@ void stats1(const char *buffer, Stats *stat, bool *chars) {
 void stats2(const char *buffer, Stats *stat) {
     int i = 0;
 
+    if (stat->print == true) {
+        stat->sum = stat->total / stat->avgc;
+    }
+
     for (; buffer[i] != '\n'; i++){
         stat->total += 1;
     }
+
     stat->avgc += 1;
     if (i < stat->min){
         stat->min = i;
-    }
-
-    if (stat->print == true) {
-        stat->sum = stat->total / stat->avgc;
     }
 }
 
@@ -456,8 +460,8 @@ int password_browser(char ** argv, Stats *stat) {
         if (stat->count == STATS) { //2nd layer of checking for --stats
             stats(buffer, stat, chars);
         }
-
-        print_call(buffer, LEVEL, PARAM);
+        Acceptance acceptance;
+        print_call(buffer, LEVEL, PARAM, &acceptance);
     }
 
     if (stat->count == STATS) { //prints stats after all passwords are parsed through
@@ -510,7 +514,6 @@ int bonus(int argc, char **argv, Stats *stat) {
 
     return 0;
 }
-
 
 int bonus_control (char **argv, int i) {
     int count = 0;
