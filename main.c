@@ -35,15 +35,14 @@ typedef struct {
     int count;
 } Stats;
 
-
 /*
  * declaring multiple functions
  */
 int bonus(int, char **, Stats *);
-int bonus_control(int);
+int bonus_control(char **, int);
 int bonus_parse(int, char **, int *, int *, Stats *);
-int bonus_decide (int, int, Stats *, char **, int, int);
-int control(const char *, int, char **, int, long *, long *);
+int bonus_decide (int, int, Stats *, char **);
+int control(const char *, char **, long *, long *);
 int rule1(const char *);
 int rule2(const char *, long);
 int rule3(const char *, long);
@@ -52,7 +51,7 @@ int print_call(const char *, long, long);
 int stats(const char *, Stats *, bool []);
 void stats1(const char *, Stats *, bool []);
 void stats2(const char *, Stats *);
-int password_browser(int argc, char ** argv, int, Stats *);
+int password_browser(char ** argv, Stats *);
 int stats_decide(char **, Stats *, int);
 int control_length(const char *);
 int rule4_control(const char *, long);
@@ -66,7 +65,7 @@ int main(int argc, char *argv[]) {
     Stats stat;
 
     int bns = bonus(argc, argv, &stat);
-    if (bns == true || bns > -2) {
+    if (bns > 0) {
         return bns;
     }
     /*int sd = stats_decide(argc, argv, count, bns, &stat);
@@ -79,16 +78,16 @@ int main(int argc, char *argv[]) {
 /*
  * function control() checks number of arguments, their correctness and calls for a function control_length()
  */
-int control(const char *buffer, int argc, char *argv[], int bonus, long *PARAM, long *LEVEL) {
+int control(const char *buffer, char **argv, long *PARAM, long *LEVEL) {
     char *b;
     char *c;
-    if (argc < 3){
+    /*if (argc < 3){
         fprintf(stderr ,"Error 1: You entered less than 2 required parameters\n");
         return true;
     } else if (argc > 4 && bonus == -2 ) {
         fprintf(stderr, "Error 9: You have entered more than 3 possible parameters\n");
         return 9;
-    }
+    }*/
     *LEVEL = strtol((const char *) argv[1], &b, 10);
     *PARAM = strtol((const char *) argv[2], &c, 10);
 
@@ -439,7 +438,7 @@ void stats2(const char *buffer, Stats *stat) {
     }
 }
 
-int password_browser(int argc, char ** argv, int bonus, Stats *stat) {
+int password_browser(char ** argv, Stats *stat) {
     char buffer[MAX_STRING_SIZE];
     long PARAM;
     long LEVEL;
@@ -447,7 +446,7 @@ int password_browser(int argc, char ** argv, int bonus, Stats *stat) {
     stat->min = 100;
 
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) { //going through each password in stdin
-        int c = control(buffer, argc, argv, bonus, &PARAM, &LEVEL);
+        int c = control(buffer, argv, &PARAM, &LEVEL);
 
         if (c >= true) {
             return c;
@@ -477,7 +476,7 @@ int stats_decide(char ** argv, Stats *stat, int i) {
             if (sts[pp] == argv[i][pp]) {
                 stat->count += 1;
             } else {
-                fprintf(stderr, "Error 8:<%s> is not a correct statistics call, please use <--stats>\n", argv[3]);
+                fprintf(stderr, "Error 8:<%s> is not a correct statistics call, please use <--stats>\n", argv[i]);
                 return 8;
             }
         }
@@ -496,39 +495,31 @@ int bonus(int argc, char **argv, Stats *stat) {
     int level = false;
     int param = false;
     stat->stats = false;
-    int bonus = 0;
-    int con = bonus_control(argc);
 
-    if (con == true) {
-        return con;
+    int bp = bonus_parse(argc, argv, &level, &param, stat);
+    if (bp != false) {
+        return bp;
     }
 
-    int bss = bonus_parse(argc, argv, &level, &param, stat);
-    if (bss != false) {
-        return bss;
+    int bd = bonus_decide(level, param, stat, argv);
+
+    if (bd != false) {
+        return bd;
     }
-
-    if (level == false && param == false) {
-        bonus = -2;
-    }
-
-    int bc = bonus_decide(level, param, stat, argv, argc, bonus);
-
-    if (bc != false) {
-        return bc;
-    }
-
-//    if (stat->stats == true) {
-//        return 2;
-//    }
 
     return 0;
 }
 
-int bonus_control(int argc) {
-    if (argc < 3) {
-        fprintf(stderr, "Error 1: You entered less than 2 required parameters\n");
-        return true;
+
+int bonus_control (char **argv, int i) {
+    int count = 0;
+    for (int o = 0; argv[i][o] != '\0'; o++) {
+         count++;
+    }
+
+    if (count > 2) {
+        fprintf(stderr, "Error 10: You have entered a nonexistent switch %s\n", argv[i]);
+        return 10;
     }
 
     return 0;
@@ -546,29 +537,43 @@ int bonus_parse (int argc, char **argv, int *level, int *param, Stats *stats) { 
                             fprintf(stderr, "Error 11: You have entered a switch after a switch\n");
                             return 11;
                         }
+                        int bc = bonus_control(argv, i);
+                        if (bc != false) {
+                            return bc;
+                        }
                         *level = i+1;
+                        break;
 
                     } else if (argv[i][d+1] == 'p' ) {
-                        if (i+1 == argc) { //
+                        if (i+1 == argc) {
                             fprintf(stderr, "Error 12: You have entered a -p switch without a value\n");
                             return 12;
                         }
                         if (argv[i+1][d] == '-') {
                             fprintf(stderr, "Error 11: You have entered a switch after a switch\n");
                             return 11;
-                        } /*else if (argc == 4) {
-                            break;
-                        }*/
+                        }
+                        int bc = bonus_control(argv, i);
+                        if (bc != false) {
+                            return bc;
+                        }
                         *param = i+1;
+                        break;
 
                     } else if (argv[i][d+1] == '-' && argv[i][d+2] == 's'){
                         stats->stats = true;
-                        stats_decide(argv, stats, i);
+                        int sd = stats_decide(argv, stats, i); //FIXME missing return check
+                        if (sd != false) {
+                            return sd;
+                        }
                         break;
                     } else {
-                        fprintf(stderr, "Error 10: You have entered a nonexistent switch\n");
+                        fprintf(stderr, "Error 10: You have entered a nonexistent switch %s\n", argv[i]);
                         return 10;
                     }
+                } else if ((argv[i][0] != '-' && argv[i-1][0] != '-' && argc > 4) || argv[i-1][1] == '-') {
+                    fprintf(stderr ,"Error 13: You have entered a number without a switch");
+                    return 13;
                 }
             }
         }
@@ -576,7 +581,7 @@ int bonus_parse (int argc, char **argv, int *level, int *param, Stats *stats) { 
     return 0;
 }
 
-int bonus_decide (int level, int param, Stats *stats, char **argv, int argc, int bonus) {
+int bonus_decide (int level, int param, Stats *stats, char **argv) {
     if (level > 0) {
         argv[1] = argv[level];
     } else {
@@ -589,7 +594,7 @@ int bonus_decide (int level, int param, Stats *stats, char **argv, int argc, int
         argv[2] = "1";
     }
 
-    int pb = password_browser(argc, argv, bonus, stats);
+    int pb = password_browser(argv, stats);
     if (pb != false) {
         return pb;
     }
