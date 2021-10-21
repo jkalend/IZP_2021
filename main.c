@@ -3,7 +3,6 @@
 //
 
 //TODO make data structs to make passing of arguments easier
-//FIXME -l 2 -p throws an error
 
 // including standard libraries
 #include <stdio.h>
@@ -38,27 +37,28 @@ typedef struct {
 /*
  * declaring multiple functions
  */
-int bonus(int, char **, Stats *);
-int bonus_control(char **, int);
-int bonus_parse(int, char **, int *, int *, Stats *);
-int bonus_decide (int, int, Stats *, char **);
 int control(const char *, char **, long *, long *);
+int control_length(const char *);
 int rule1(const char *);
 int rule2(const char *, long);
+int rule2_3(const char *, int *);
+int rule2_4(const char *, int *);
 int rule3(const char *, long);
 int rule4(const char *, long);
+int rule4_control(const char *, long);
+void sub_maker(const char *, Acceptance *, long, int);
+void rule4_loop(const char *, Acceptance *, long);
 int print_call(const char *, long, long);
 int stats(const char *, Stats *, bool []);
 void stats1(const char *, Stats *, bool []);
 void stats2(const char *, Stats *);
 int password_browser(char ** argv, Stats *);
 int stats_decide(char **, Stats *, int);
-int control_length(const char *);
-int rule4_control(const char *, long);
-void sub_maker(const char *, Acceptance *, long, int);
-void rule4_loop(const char *, Acceptance *, long);
-int rule2_3(const char *, int *);
-int rule2_4(const char *, int *);
+int bonus(int, char **, Stats *);
+int bonus_control(char **, int);
+int bonus_parse(int, char **, int *, int *, Stats *);
+int bonus_decide (int, int, Stats *, char **);
+
 
 
 int main(int argc, char *argv[]) {
@@ -562,7 +562,7 @@ int bonus_parse (int argc, char **argv, int *level, int *param, Stats *stats) { 
 
                     } else if (argv[i][d+1] == '-' && argv[i][d+2] == 's'){
                         stats->stats = true;
-                        int sd = stats_decide(argv, stats, i); //FIXME missing return check
+                        int sd = stats_decide(argv, stats, i);
                         if (sd != false) {
                             return sd;
                         }
