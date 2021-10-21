@@ -3,6 +3,7 @@
 //
 
 //TODO make data structs to make passing of arguments easier
+//FIXME empty returns SIGSEGV
 
 // including standard libraries
 #include <stdio.h>
@@ -57,7 +58,7 @@ int stats_decide(char **, Stats *, int);
 int bonus(int, char **, Stats *);
 int bonus_control(char **, int);
 int bonus_parse(int, char **, int *, int *, Stats *);
-int bonus_decide (int, int, Stats *, char **);
+int bonus_decide (int, int, Stats *, char **, const int *);
 
 
 
@@ -314,13 +315,13 @@ void rule4_loop(const char *buffer, Acceptance *accept, long string_len) {
         if (accept->chains[string_len - 1] == buffer[o]) { //checks the location o for the presence of the last letter of the substring
             long d = string_len - 1; //for parsing through the substring
 
-            for (long c = o; d > -1; --c) { // checks other letters in the substring
+            for (long c = o; d > -1; c--) { // checks other letters in the substring
                 if (accept->chains[d] == buffer[c]) {
-                    --d;
-                    ++match;
+                    d--;
+                    match++;
                 } else {
                     match = 0;
-                    --d;
+                    d--;
                 }
                 if (match == string_len) {
                     accept->ekv++;
@@ -501,7 +502,7 @@ int bonus(int argc, char **argv, Stats *stat) {
         return bp;
     }
 
-    int bd = bonus_decide(level, param, stat, argv);
+    int bd = bonus_decide(level, param, stat, argv, &argc);
 
     if (bd != false) {
         return bd;
@@ -533,6 +534,10 @@ int bonus_parse (int argc, char **argv, int *level, int *param, Stats *stats) { 
                 if (argv[i][d] == '-') {
 
                     if (argv[i][d+1] == 'l') {
+                        if (i+1 == argc) {
+                            fprintf(stderr, "Error 14: You have entered an -l switch without a value\n");
+                            return 14;
+                        }
                         if (argv[i+1][d] == '-') {
                             fprintf(stderr, "Error 11: You have entered a switch after a switch\n");
                             return 11;
@@ -572,7 +577,7 @@ int bonus_parse (int argc, char **argv, int *level, int *param, Stats *stats) { 
                         return 10;
                     }
                 } else if ((argv[i][0] != '-' && argv[i-1][0] != '-' && argc > 4) || argv[i-1][1] == '-') {
-                    fprintf(stderr ,"Error 13: You have entered a number without a switch");
+                    fprintf(stderr ,"Error 13: You have entered a number without a switch\n");
                     return 13;
                 }
             }
@@ -581,16 +586,16 @@ int bonus_parse (int argc, char **argv, int *level, int *param, Stats *stats) { 
     return 0;
 }
 
-int bonus_decide (int level, int param, Stats *stats, char **argv) {
+int bonus_decide (int level, int param, Stats *stats, char **argv, const int *argc) {
     if (level > 0) {
         argv[1] = argv[level];
-    } else {
+    } else if (*argc <= 2 || param) {
         argv[1] = "1";
     }
 
     if (param > 0) {
         argv[2] = argv[param];
-    } else {
+    } else if (*argc <= 2 || level) {
         argv[2] = "1";
     }
 
