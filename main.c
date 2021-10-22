@@ -26,10 +26,10 @@ typedef struct {
     bool stats; // stores information whether --stats were called or not
     int NCHARS; // stores the number of unique characters
     int min; // stores the shortest length of any password
-    float avgc; // stores the average length of all paswords
+    float sum; // stores the total count of passwords
     float total; // stores the total amount of characters in passwords
     int print; // indicates stats() whether to print them or not
-    float sum; // stores a number of passwords
+    float avgc; // stores the average length of all passwords
     int count; // stores the length of the supposed --stats, if count == STATS (7), the input for stats is correct
 } Stats;
 
@@ -394,7 +394,7 @@ int stats(const char *buffer, Stats *stat, bool chars[]) {
         printf("Statistika:\n");
         printf("Ruznych znaku: %d\n", stat->NCHARS);
         printf("Minimalni delka: %d\n", stat->min);
-        printf("Prumerna delka: %0.1f\n", stat->sum);
+        printf("Prumerna delka: %0.1f\n", stat->avgc);
     }
 
     return  0;
@@ -431,14 +431,14 @@ void stats2(const char *buffer, Stats *stat) {
     int i = 0;
 
     if (stat->print == true) {
-        stat->sum = stat->total / stat->avgc;
+        stat->avgc = stat->total / stat->sum;
     }
 
     for (; buffer[i] != '\n'; i++){
         stat->total += 1;
     }
 
-    stat->avgc += 1;
+    stat->sum += 1;
     if (i < stat->min){
         stat->min = i;
     }
