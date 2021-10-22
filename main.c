@@ -15,29 +15,29 @@
 #define STATS 7
 
 typedef struct {
-    int acceptance;
-    int acceptance1_lowercase;
-    int acceptance1_uppercase;
+    int acceptance; // stores the decision whether the password follows the rule or not
+    int lowercase; // indicates whether password contains
+    int uppercase;
     int accept_rule2_3;
     int ekv;
 } Acceptance;
 
 typedef struct {
-    bool stats;
-    int NCHARS;
-    int min;
-    float avgc;
-    float total;
-    int print;
-    float sum;
-    int count;
+    bool stats; // stores information whether --stats were called or not
+    int NCHARS; // stores the number of unique characters
+    int min; // stores the shortest length of any password
+    float avgc; // stores the average length of all paswords
+    float total; // stores the total amount of characters in passwords
+    int print; // indicates stats() whether to print them or not
+    float sum; // stores a number of passwords
+    int count; // stores the length of the supposed --stats, if count == STATS (7), the input for stats is correct
 } Stats;
 
 typedef struct {
-    int bonus_level;
-    int bonus_param;
-    int no_bonus_level;
-    int no_bonus_param;
+    int bonus_level; // stores the index of a string following the "-l" switch //TODO string instead of symbol/sign
+    int bonus_param; // stores the index of a string following the "-p" switch
+    int no_bonus_level; // stores whether the level is indicated by a switch or not
+    int no_bonus_param; // stores whether the param is indicated by a switch or not
 } Bonus;
 
 /*
@@ -63,7 +63,7 @@ int stats_decide(char **, Stats *, int);
 int bonus(int, char **, Stats *);
 int bonus_control(char **, int);
 int bonus_parse_base(int, char **, Bonus *, Stats *);
-int bonus_decide (Bonus *, Stats *, char **, const int *);
+int bonus_decide (Bonus *, Stats *, char **, int);
 int bonus_parse_extend (int, char **, Bonus *, Stats *, int);
 int bonus_parse_level (int, char **, Bonus *, int , int);
 int bonus_parse_param (int, char **, Bonus *, int, int);
@@ -135,19 +135,19 @@ int control_length(const char *buffer) {
  * function rule1() is called by print_call() and loops through buffer to decide about correctness of the password under rule 1
  */
 int rule1(const char* buffer, Acceptance *accept) {
-    accept->acceptance1_lowercase = 0;
-    accept->acceptance1_uppercase = 0;
+    accept->lowercase = 0;
+    accept->uppercase = 0;
 
-    for (int i = 0; buffer[i] != '\0'; ++i) { //loop checking for presence of a lowercase letter
+    for (int i = 0; buffer[i] != '\0' && !(accept->lowercase && accept->uppercase); ++i) { //loop checking for presence of a lowercase letter
         if (buffer[i] >= 'a' && buffer[i] <= 'z') {
-            accept->acceptance1_lowercase++;
+            accept->lowercase++;
         }
         if (buffer[i] >= 'A' && buffer[i] <= 'Z') { //loop checking for presence of an uppercase letter
-            accept->acceptance1_uppercase++;
+            accept->uppercase++;
         }
     }
 
-    if (accept->acceptance1_uppercase > 0 && accept->acceptance1_lowercase > 0) { //decision about overall acceptance of the password under rule 1
+    if (accept->uppercase && accept->lowercase) { //decision about overall acceptance of the password under rule 1
         accept->acceptance = true;
     } else {
         accept->acceptance = false;
@@ -519,7 +519,7 @@ int bonus(int argc, char **argv, Stats *stat) {
         return bp;
     }
 
-    int bd = bonus_decide(&bonus_vars, stat, argv, &argc);
+    int bd = bonus_decide(&bonus_vars, stat, argv, argc);
 
     if (bd != false) {
         return bd;
@@ -558,7 +558,7 @@ int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) {
         }
     } // loop parsing arguments for -l - p
 
-    if (argc == 2 && !(bonus_vars->bonus_level) && !(bonus_vars->bonus_param) && !(stats->stats)) {
+    if (argc == 2 && !(bonus_vars->bonus_level) && !(bonus_vars->bonus_param) && !(stats->stats)) { //when only 1 parameter is entered and is not a switch or --stats
         fprintf(stderr, "Error 15: Invalid input");
         return 15;
     }
@@ -569,22 +569,22 @@ int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) {
 /*
  * bonus_decide() does the final decision about values of argv[1] and argv[2] and then calls password_browser(), which then uses these values as LEVEL and PARAM
  */
-int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, const int *argc) { //FIXME why int *
+int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, int argc) { //FIXME why int *
     if (bonus_vars->bonus_level > 0) {
         argv[1] = argv[bonus_vars->bonus_level]; //assigns the -l switch value as a LEVEL for password_browser()
-    } else if (bonus_vars->no_bonus_level && *argc == 4 && !(stats->stats)) { // let's control() check for invalid input in place of level
+    } else if (bonus_vars->no_bonus_level && argc == 4 && !(stats->stats)) { // when input doesn't follow basic input or bonus input and mixes them
         fprintf(stderr, "Error 15: Invalid input");
         return 15;
-    } else if (*argc <= 2 || bonus_vars->bonus_param) { //when no arguments are entered or only -p switch with a value is entered
+    } else if (argc <= 2 || bonus_vars->bonus_param) { //when no arguments are entered or only -p switch with a value is entered
         argv[1] = "1";
     }
 
     if (bonus_vars->bonus_param > 0) {
         argv[2] = argv[bonus_vars->bonus_param]; //assigns the -p switch value as a PARAM for password_browser()
-    } else if (bonus_vars->no_bonus_param && *argc == 4 && !(stats->stats)) { // let's control() check for invalid input in place of param
+    } else if (bonus_vars->no_bonus_param && argc == 4 && !(stats->stats)) { // when input doesn't follow basic input or bonus input and mixes them
         fprintf(stderr, "Error 15: Invalid input");
         return 15;
-    } else if (*argc <= 2 || bonus_vars->bonus_level) { //when no arguments are entered or only -l switch with a value is entered
+    } else if (argc <= 2 || bonus_vars->bonus_level) { //when no arguments are entered or only -l switch with a value is entered
         argv[2] = "1";
     }
 
@@ -595,7 +595,11 @@ int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, const int *argc) 
 
     return 0;
 }
-
+/*
+ * bonus_parse_extend() contains a loop that looks for "-" and when it finds it, it proceeds to check for "l", "p", "-s"
+ * if neither of those characters after "i" are found, an error is issued
+ * if "-" isn't encountered, the program continues
+ */
 int bonus_parse_extend (int argc, char **argv, Bonus *bonus_vars, Stats *stats, int i) {
     for (int d = 0; argv[i][d] != '\0'; d++) {
         if (argv[i][d] == '-') {
@@ -626,14 +630,17 @@ int bonus_parse_extend (int argc, char **argv, Bonus *bonus_vars, Stats *stats, 
                 fprintf(stderr, "Error 10: You have entered a nonexistent switch %s\n", argv[i]);
                 return 10;
             }
-        } else if ((argv[i][0] != '-' && argv[i-1][0] != '-' && argc > 4) || argv[i-1][1] == '-') {
-            fprintf(stderr ,"Error 13: You have entered a number without a switch\n");
+        } else if ((argv[i][0] != '-' && argv[i-1][0] != '-' && argc > 4) || argv[i-1][1] == '-') { // when a sign is entered without a switch before the sign
+            fprintf(stderr ,"Error 13: You have entered a symbol without a switch\n");
             return 13;
         }
     }
     return  0;
 }
 
+/*
+ * bonus_parse_level() looks for a symbol after the "-l" switch
+ */
 int bonus_parse_level (int argc, char ** argv, Bonus *bonus_vars, int i, int d) {
     if (i+1 == argc) {
         fprintf(stderr, "Error 14: You have entered an -l switch without a value\n");
@@ -656,6 +663,9 @@ int bonus_parse_level (int argc, char ** argv, Bonus *bonus_vars, int i, int d) 
     return 0;
 }
 
+/*
+ * bonus_parse_param() looks for a symbol after the "-p" switch
+ */
 int bonus_parse_param (int argc, char ** argv, Bonus *bonus_vars, int i, int d) {
     if (i+1 == argc) {
         fprintf(stderr, "Error 12: You have entered a -p switch without a value\n");
