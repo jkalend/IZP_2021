@@ -559,7 +559,8 @@ int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) {
     } // loop parsing arguments for -l - p
 
     if (argc == 2 && !(bonus_vars->bonus_level) && !(bonus_vars->bonus_param) && !(stats->stats)) {
-        return 120;
+        fprintf(stderr, "Error 15: Invalid input");
+        return 15;
     }
 
     return 0;
@@ -572,7 +573,8 @@ int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, const int *argc) 
     if (bonus_vars->bonus_level > 0) {
         argv[1] = argv[bonus_vars->bonus_level]; //assigns the -l switch value as a LEVEL for password_browser()
     } else if (bonus_vars->no_bonus_level && *argc == 4 && !(stats->stats)) { // let's control() check for invalid input in place of level
-        return 130;
+        fprintf(stderr, "Error 15: Invalid input");
+        return 15;
     } else if (*argc <= 2 || bonus_vars->bonus_param) { //when no arguments are entered or only -p switch with a value is entered
         argv[1] = "1";
     }
@@ -580,7 +582,8 @@ int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, const int *argc) 
     if (bonus_vars->bonus_param > 0) {
         argv[2] = argv[bonus_vars->bonus_param]; //assigns the -p switch value as a PARAM for password_browser()
     } else if (bonus_vars->no_bonus_param && *argc == 4 && !(stats->stats)) { // let's control() check for invalid input in place of param
-        return 140;
+        fprintf(stderr, "Error 15: Invalid input");
+        return 15;
     } else if (*argc <= 2 || bonus_vars->bonus_level) { //when no arguments are entered or only -l switch with a value is entered
         argv[2] = "1";
     }
