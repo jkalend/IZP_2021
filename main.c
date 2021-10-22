@@ -36,6 +36,8 @@ typedef struct {
 typedef struct {
     int bonus_level;
     int bonus_param;
+    int no_bonus_level;
+    int no_bonus_param;
 } Bonus;
 
 /*
@@ -70,6 +72,7 @@ int bonus_parse_param (int, char **, Bonus *, int, int);
 
 int main(int argc, char *argv[]) {
     Stats stat;
+    stat.NCHARS = 0;
 
     int bns = bonus(argc, argv, &stat);
     if (bns > 0) {
@@ -441,10 +444,16 @@ void stats2(const char *buffer, Stats *stat) {
     }
 }
 
+/*
+ * password_browser() is a central function containing fgets() which saves the content of stdin into a buffer
+ * each password is firstly checked by control(), if --stats are called, stats() take care of collecting statistical data
+ * print_call() is called afterwards, where a decision about whether to print the password or not is made
+ * after the while loop with fgets(), print value of Stats data structure is changed to true, signalising stats() to print statistics
+ */
 int password_browser(char ** argv, Stats *stat) {
     char buffer[MAX_STRING_SIZE];
     long PARAM, LEVEL;
-    bool chars['~'] = {0};
+    bool characters['~'] = {0};
     stat->min = 100;
 
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) { //going through each password in stdin
@@ -455,7 +464,7 @@ int password_browser(char ** argv, Stats *stat) {
         }
 
         if (stat->count == STATS) { //2nd layer of checking for --stats
-            stats(buffer, stat, chars);
+            stats(buffer, stat, characters);
         }
         Acceptance acceptance;
         print_call(buffer, LEVEL, PARAM, &acceptance);
@@ -463,12 +472,17 @@ int password_browser(char ** argv, Stats *stat) {
 
     if (stat->count == STATS) { //prints stats after all passwords are parsed through
         stat->print = true;
-        stats(buffer, stat, chars);
+        stats(buffer, stat, characters);
     }
 
     return 0;
 }
 
+/*
+ * stats_decide() decides whether the string in argv[i] that starts with --s is truly --stats or not
+ * the decision is saved into the count value of Stats data structure, if the count value is equal to STATS (8), then password_browser() calls stats()
+ * if argv[i] that starts with --s but isn't equal to --stats, the program is terminated and an error is issued
+ */
 int stats_decide(char ** argv, Stats *stat, int i) {
     char sts[STATS_LEN] = "--stats";
     stat->count = 0;
@@ -487,10 +501,17 @@ int stats_decide(char ** argv, Stats *stat, int i) {
     return 0;
 }
 
+/*
+ * bonus() is called by main() and returns any error codes back to main
+ * bonus() initializes Bonus data structure, which is used in decision whether the program arguments are according to the bonus solution or the base one
+ * functions bonus_parse_base() and bonus_decide() are called for determination of correctness and style of an input
+ */
 int bonus(int argc, char **argv, Stats *stat) {
     Bonus bonus_vars;
     bonus_vars.bonus_level = false;
     bonus_vars.bonus_param = false;
+    bonus_vars.no_bonus_level = true;
+    bonus_vars.no_bonus_param = true;
     stat->stats = false;
 
     int bp = bonus_parse_base(argc, argv, &bonus_vars, stat);
@@ -507,6 +528,9 @@ int bonus(int argc, char **argv, Stats *stat) {
     return 0;
 }
 
+/*
+ * bonus_control() is called by bonus_parse_level() and bonus_parse_param() and checks whether the switches are truly correct or not
+ */
 int bonus_control (char **argv, int i) {
     int count = 0;
 
@@ -520,7 +544,10 @@ int bonus_control (char **argv, int i) {
     return 0;
 }
 
-int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) { //FIXME more functions please!!
+/*
+ * bonus_parse_base() is a base to the entire bonus parser and returns any errors back to bonus()
+ */
+int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) {
     for (int i = 0; i < argc; i++) {
         if (i > 0) {
 
@@ -530,19 +557,31 @@ int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) { 
            }
         }
     } // loop parsing arguments for -l - p
+
+    if (argc == 2 && !(bonus_vars->bonus_level) && !(bonus_vars->bonus_param) && !(stats->stats)) {
+        return 120;
+    }
+
     return 0;
 }
 
-int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, const int *argc) {
+/*
+ * bonus_decide() does the final decision about values of argv[1] and argv[2] and then calls password_browser(), which then uses these values as LEVEL and PARAM
+ */
+int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, const int *argc) { //FIXME why int *
     if (bonus_vars->bonus_level > 0) {
-        argv[1] = argv[bonus_vars->bonus_level];
-    } else if (*argc <= 2 || bonus_vars->bonus_param) {
+        argv[1] = argv[bonus_vars->bonus_level]; //assigns the -l switch value as a LEVEL for password_browser()
+    } else if (bonus_vars->no_bonus_level && *argc == 4 && !(stats->stats)) { // let's control() check for invalid input in place of level
+        return 130;
+    } else if (*argc <= 2 || bonus_vars->bonus_param) { //when no arguments are entered or only -p switch with a value is entered
         argv[1] = "1";
     }
 
     if (bonus_vars->bonus_param > 0) {
-        argv[2] = argv[bonus_vars->bonus_param];
-    } else if (*argc <= 2 || bonus_vars->bonus_level) {
+        argv[2] = argv[bonus_vars->bonus_param]; //assigns the -p switch value as a PARAM for password_browser()
+    } else if (bonus_vars->no_bonus_param && *argc == 4 && !(stats->stats)) { // let's control() check for invalid input in place of param
+        return 140;
+    } else if (*argc <= 2 || bonus_vars->bonus_level) { //when no arguments are entered or only -l switch with a value is entered
         argv[2] = "1";
     }
 
@@ -592,7 +631,6 @@ int bonus_parse_extend (int argc, char **argv, Bonus *bonus_vars, Stats *stats, 
     return  0;
 }
 
-
 int bonus_parse_level (int argc, char ** argv, Bonus *bonus_vars, int i, int d) {
     if (i+1 == argc) {
         fprintf(stderr, "Error 14: You have entered an -l switch without a value\n");
@@ -610,6 +648,7 @@ int bonus_parse_level (int argc, char ** argv, Bonus *bonus_vars, int i, int d) 
     }
 
     bonus_vars->bonus_level = i+1;
+    bonus_vars->no_bonus_level = false;
 
     return 0;
 }
@@ -631,6 +670,7 @@ int bonus_parse_param (int argc, char ** argv, Bonus *bonus_vars, int i, int d) 
     }
 
     bonus_vars->bonus_param = i+1;
+    bonus_vars->no_bonus_param = false;
 
     return 0;
 }
