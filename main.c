@@ -3,6 +3,7 @@
 //
 
 //TODO make data structs to make passing of arguments easier
+//FIXME avgc, sum, total change to long long
 
 // including standard libraries
 #include <stdio.h>
@@ -20,6 +21,7 @@ typedef struct {
     int uppercase;
     int accept_rule2_3;
     int ekv;
+    bool end_of_password; //FIXME
 } Acceptance;
 
 typedef struct {
@@ -52,7 +54,7 @@ int rule2_4(const char *, Acceptance *);
 int rule3(const char *, long, Acceptance *);
 int rule4(const char *, long, Acceptance *);
 int rule4_control(const char *, long);
-void sub_maker(const char *, long, int, char *);
+void sub_maker(const char *, long, int, char *, Acceptance *);
 void rule4_loop(const char *, Acceptance *, long, const char *);
 int print_call(const char *, long, long, Acceptance *);
 int stats(const char *, Stats *, bool []);
@@ -259,6 +261,7 @@ int rule3(const char* buffer, long PARAM, Acceptance *accept) {
  */
 int rule4(const char* buffer, long PARAM, Acceptance *accept) {
     char chains[102] = {0};
+    accept->end_of_password = 0;
     if (accept->acceptance == false) {
         return false;
     }
@@ -269,8 +272,8 @@ int rule4(const char* buffer, long PARAM, Acceptance *accept) {
         return true;
     }
 
-    for (int u = 0; buffer[u] != '\n' && accept->ekv < 2; u++) {
-        sub_maker(buffer, string_len, u, chains);
+    for (int u = 0; buffer[u] != '\n' && accept->ekv < 2 && !(accept->end_of_password); u++) {
+        sub_maker(buffer, string_len, u, chains, accept);
         accept->ekv = 0;
         rule4_loop(buffer, accept, string_len, chains);
     }
@@ -299,13 +302,18 @@ int rule4_control(const char * buffer, long string_len) {
  * a function with a loop for creation of a substring for comparison within rule4()
  * sub_maker() is called by rule4() every time it requires a new substring
  */
-void sub_maker(const char * buffer, long string_len, int u, char * chains) {
-    for (int i = 0; string_len > i; i++) {
+void sub_maker(const char * buffer, long string_len, int u, char * chains, Acceptance * accept) {
+    int i = 0;
+
+    for (; string_len > i; i++) {
+
         if (buffer[i + u] != '\n') {
             chains[i] = buffer[i + u];
-        } else {
-            chains[0] = '\0';
         }
+    }
+
+    if (buffer[i + u] == '\n') {
+        accept->end_of_password = 1;
     }
 }
 
