@@ -21,17 +21,17 @@ typedef struct {
     int uppercase;
     int accept_rule2_3;
     int ekv;
-    bool end_of_password; //FIXME
+    bool end_of_password;
 } Acceptance;
 
 typedef struct {
     bool stats; // stores information whether --stats were called or not
     int NCHARS; // stores the number of unique characters
     int min; // stores the shortest length of any password
-    float sum; // stores the total count of passwords
-    float total; // stores the total amount of characters in passwords
+    double sum; // stores the total count of passwords
+    double total; // stores the total amount of characters in passwords
     int print; // indicates stats() whether to print them or not
-    float avgc; // stores the average length of all passwords
+    double avgc; // stores the average length of all passwords
     int count; // stores the length of the supposed --stats, if count == STATS (7), the input for stats is correct
 } Stats;
 
@@ -154,7 +154,7 @@ int rule1(const char* buffer, Acceptance *accept) {
 }
 
 /*
- * rule 2 dictates that the password has to contain at least one symbol from X groups (there are 4 groups)
+ * rule 2 dictates that the password has to contain at least one character from X groups (there are 4 groups)
  * function rule2() is called by print_call() and uses the value of PARAM to decide how many groups have to be checked for
  * accordance to rule 2 up to PARAM value of 2 is decided by the return value of rule1()
  */
@@ -235,12 +235,12 @@ int rule3(const char* buffer, long PARAM, Acceptance *accept) {
     }
 
     accept->acceptance = true;
-    int letter_count = 0; // initialization of a variable that holds the count of a continuous repeats of the same symbol
+    int letter_count = 0; // initialization of a variable that holds the count of a continuous repeats of the same character
 
     for (int i = 0; buffer[i] != '\0'; i++) {
-        if (i > 0 && buffer[i] == buffer[i-1]) { // when a symbol is same as the one before
+        if (i > 0 && buffer[i] == buffer[i-1]) { // when a character is same as the one before
             letter_count++;
-        } else if (letter_count >= PARAM){
+        } else if (letter_count >= PARAM){ // when a character got repeated more than PARAM times
             accept->acceptance = false;
             return accept->acceptance;
         } else {
@@ -254,48 +254,49 @@ int rule3(const char* buffer, long PARAM, Acceptance *accept) {
 /*
  * rule 4 forbids passwords which contain a 2 or more instances of any substring of a length set by the value PARAM
  * function rule3() is called by print_call()
+ * the central loop keeps going until either the last character of a password is used to make a substring or more than 1 instance of a substring is encountered
  */
 int rule4(const char* buffer, long PARAM, Acceptance *accept) {
-    char chains[102] = {0};
-    accept->end_of_password = 0;
-    if (accept->acceptance == false) {
+    char chains[102] = {0}; // initialization of a substring
+    accept->end_of_password = false;
+    if (accept->acceptance == false) { // control whether other rules let the password through
         return false;
     }
-    long string_len = PARAM;
-    accept->ekv = 0;
+    long string_len = PARAM; // initialization of a variable string_len which dictates the length of the substring
+    accept->ekv = 0; // initialization of the ekv variable
 
-    if (rule4_control(buffer, string_len) == true) {
+    if (rule4_control(buffer, string_len)) {
         return true;
     }
 
     for (int u = 0; buffer[u] != '\n' && accept->ekv < 2 && !(accept->end_of_password); u++) {
-        sub_maker(buffer, string_len, u, chains, accept);
-        accept->ekv = 0;
-        rule4_loop(buffer, accept, string_len, chains);
+        sub_maker(buffer, string_len, u, chains, accept); // called to make a substring
+        accept->ekv = 0; // reset of the ekv variable
+        rule4_loop(buffer, accept, string_len, chains); // loop to check for occurrences of the substring in a password
     }
 
-    if (accept->ekv < 2) {
-        return true;
-    } else {
-        return false;
-    }
+    return (accept->ekv < 2);
 }
 
 /*
  * checks whether the password isn't shorter than wanted length of rule 4 substring
+ * when the password is shorter than the substring that is being checked for, the password automatically pass
+ * shorter password than string_len can't have the same substring more than once
  * rule4_control() is called by rule4()
  */
 int rule4_control(const char * buffer, long string_len) {
     for (int max  = 0; buffer[max] != '\0' && max < string_len; max++) {
-        if (max < string_len && buffer[max] == '\n')
+        if (max < string_len && buffer[max] == '\n') {
+
             return true;
+        }
     }
 
     return false;
 }
 
 /*
- * a function with a loop for creation of a substring for comparison within rule4()
+ * a function with a loop for creation of a substring used for comparison within rule4()
  * sub_maker() is called by rule4() every time it requires a new substring
  */
 void sub_maker(const char * buffer, long string_len, int u, char * chains, Acceptance * accept) {
@@ -308,8 +309,8 @@ void sub_maker(const char * buffer, long string_len, int u, char * chains, Accep
         }
     }
 
-    if (buffer[i + u] == '\n') {
-        accept->end_of_password = 1;
+    if (buffer[i + u] == '\n') { // when the last character of a password is encountered
+        accept->end_of_password = true;
     }
 }
 
@@ -323,8 +324,8 @@ void rule4_loop(const char *buffer, Acceptance *accept, long string_len, const c
         if (chains[string_len - 1] == buffer[o]) { //checks the location o for the presence of the last letter of the substring
             long d = string_len - 1; //for parsing through the substring
 
-            for (long c = o; d > -1; c--) { // checks other letters in the substring
-                if (chains[d] == buffer[c]) {
+            for (long c = o; d > (-1); c--) { // checks other letters in the substring
+                if (chains[d] == buffer[c]) { // due to d--, the suspected repeat of a substring is checked from the back
                     d--;
                     match++;
                 } else {
@@ -459,6 +460,7 @@ int password_browser(char ** argv, Stats *stat) {
     long PARAM, LEVEL;
     bool characters['~'] = {0};
     stat->min = 100;
+    stat->avgc = 0;
 
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) { //going through each password in stdin
         int c = control(buffer, argv, &PARAM, &LEVEL);
@@ -573,7 +575,7 @@ int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) {
 /*
  * bonus_decide() does the final decision about values of argv[1] and argv[2] and then calls password_browser(), which then uses these values as LEVEL and PARAM
  */
-int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, int argc) { //FIXME why int *
+int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, int argc) {
     if (bonus_vars->bonus_level > 0) {
         argv[1] = argv[bonus_vars->bonus_level]; //assigns the -l switch value as a LEVEL for password_browser()
     } else if (bonus_vars->no_bonus_level && argc == 4 && !(stats->stats)) { // when input doesn't follow basic input or bonus input and mixes them
@@ -635,7 +637,7 @@ int bonus_parse_extend (int argc, char **argv, Bonus *bonus_vars, Stats *stats, 
                 return 10;
             }
         } else if ((argv[i][0] != '-' && argv[i-1][0] != '-' && argc > 4) || argv[i-1][1] == '-') { // when a sign is entered without a switch before the sign
-            fprintf(stderr ,"Error 13: You have entered a symbol without a switch\n");
+            fprintf(stderr ,"Error 13: You have entered a character without a switch\n");
             return 13;
         }
     }
@@ -643,7 +645,7 @@ int bonus_parse_extend (int argc, char **argv, Bonus *bonus_vars, Stats *stats, 
 }
 
 /*
- * bonus_parse_level() looks for a symbol after the "-l" switch
+ * bonus_parse_level() looks for a character after the "-l" switch
  */
 int bonus_parse_level (int argc, char ** argv, Bonus *bonus_vars, int i, int d) {
     if (i+1 == argc) {
@@ -668,7 +670,7 @@ int bonus_parse_level (int argc, char ** argv, Bonus *bonus_vars, int i, int d) 
 }
 
 /*
- * bonus_parse_param() looks for a symbol after the "-p" switch
+ * bonus_parse_param() looks for a character after the "-p" switch
  */
 int bonus_parse_param (int argc, char ** argv, Bonus *bonus_vars, int i, int d) {
     if (i+1 == argc) {
