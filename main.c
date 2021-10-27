@@ -1,5 +1,6 @@
 //
 // Created by xkalen07 on 29.09.2021.
+// IZP project 1
 //
 
 // including standard libraries
@@ -16,10 +17,9 @@ typedef struct {
     int acceptance; // stores the decision whether the password follows the rule or not
     int lowercase; // indicates whether password contains a lowercase letter
     int uppercase; // indicates whether password contains an uppercase letter
-    int accept_rule2_3;
-    int ekv;
-    bool end_of_password;
-    int length;
+    int ekv; // stores the amount of repeats of the same substring in a password
+    bool end_of_password; // indicates whether last character of a symbol is being used to make a substring
+    int length; // stores the length of a password
 } Acceptance;
 
 typedef struct {
@@ -58,7 +58,7 @@ int print_call(const char *, long, long, Acceptance *);
 int stats(const char *, Stats *, bool [], Acceptance *);
 void stats1(const char *, Stats *, bool []);
 void stats2(Stats *, Acceptance *);
-int password_browser(char ** argv, Stats *);
+int password_browser(char **, Stats *);
 int stats_decide(char **, Stats *, int);
 int bonus(int, char **, Stats *);
 int bonus_control(char **, int);
@@ -70,7 +70,7 @@ int bonus_parse_param (int, char **, Bonus *, int, int);
 
 
 
-int main(int argc, char *argv[]) {
+int main (int argc, char *argv[]) {
     Stats stat; // declaration of the Stats data structure used to store information about statistics
     stat.NCHARS = 0; // initialization of int NCHARS, it is important to start with a 0 value
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
 /*
  * function control() checks number of arguments, their correctness and calls for a function control_length()
  */
-int control(const char *buffer, char **argv, long *PARAM, long *LEVEL, Acceptance * acceptance) {
+int control (const char *buffer, char **argv, long *PARAM, long *LEVEL, Acceptance * acceptance) {
     char *b;
     char *c;
 
@@ -113,7 +113,7 @@ int control(const char *buffer, char **argv, long *PARAM, long *LEVEL, Acceptanc
 /*
  * This function is called by control() to check whether the password contained in buffer isn't longer than 100 characters
  */
-int control_length(const char *buffer, Acceptance *acceptance) {
+int control_length (const char *buffer, Acceptance *acceptance) {
     int length = 0;
 
     for (; buffer[length] != '\0'; ++length) { //loop used to find out the actual length of the content of the buffer
@@ -131,7 +131,7 @@ int control_length(const char *buffer, Acceptance *acceptance) {
  * rule 1 dictates that the password has to contain at least 1 lowercase and 1 uppercase letter
  * function rule1() is called by print_call() and loops through buffer to decide about correctness of the password under rule 1
  */
-int rule1(const char* buffer, Acceptance *accept) {
+int rule1 (const char* buffer, Acceptance *accept) {
     accept->lowercase = false;
     accept->uppercase = false; // assuming lack of both uppercase and lowercase letters
 
@@ -229,7 +229,7 @@ int rule2_4 (const char *buffer, Acceptance *accept) {
  * rule 3 forbids passwords which contain a sequence of the same letters, length of this sequence is dictated by value of PARAM
  * function rule3() is called by print_call()
  */
-int rule3(const char* buffer, long PARAM, Acceptance *accept) {
+int rule3 (const char* buffer, long PARAM, Acceptance *accept) {
     if (accept->acceptance == false) {
         return false;
     }
@@ -257,7 +257,7 @@ int rule3(const char* buffer, long PARAM, Acceptance *accept) {
  * the central loop keeps going until either the last character of a password is used to make a substring,
  * or more than 1 instance of a substring is encountered
  */
-int rule4(const char* buffer, long PARAM, Acceptance *accept) {
+int rule4 (const char* buffer, long PARAM, Acceptance *accept) {
     char chains[MAX_STRING_SIZE] = {0}; // initialization of a substring
     if (accept->acceptance == false) { // control whether other rules let the password through
         return false;
@@ -278,7 +278,7 @@ int rule4(const char* buffer, long PARAM, Acceptance *accept) {
  * a function with a loop for creation of a substring used for comparison within rule4()
  * sub_maker() is called by rule4() every time it requires a new substring
  */
-void sub_maker(const char * buffer, long PARAM, int u, char * chains) {
+void sub_maker (const char * buffer, long PARAM, int u, char * chains) {
     int i = 0;
 
     for (; PARAM > i && buffer[i + u] != '\n'; i++) {
@@ -289,7 +289,7 @@ void sub_maker(const char * buffer, long PARAM, int u, char * chains) {
 /*
  * a loop going through the password looking for the same substring
  */
-void rule4_loop(const char *buffer, Acceptance *accept, long PARAM, const char * chains) {
+void rule4_loop (const char *buffer, Acceptance *accept, long PARAM, const char * chains) {
     for (long o = PARAM - 1; buffer[o] != '\n'; o++) { //looping over the password
         int match = 0;
 
@@ -316,7 +316,7 @@ void rule4_loop(const char *buffer, Acceptance *accept, long PARAM, const char *
  * calls of individual security levels and their accompanied rules
  * whenever any of the previous rules decide that the password is not valid, other rules are not checked for performance
  */
-int print_call(const char *buffer, long LEVEL, long PARAM, Acceptance *acceptance) {
+int print_call (const char *buffer, long LEVEL, long PARAM, Acceptance *acceptance) {
     int r1 = true;
     int r2 = true;
     int r3 = true;
@@ -364,7 +364,7 @@ int print_call(const char *buffer, long LEVEL, long PARAM, Acceptance *acceptanc
  * stats() is taking care of statistics when --stats is called
  * print value decides when the statistics should be printed, value 1 is given when all passwords are parsed through
  */
-int stats(const char *buffer, Stats *stat, bool chars[], Acceptance *acceptance) {
+int stats (const char *buffer, Stats *stat, bool chars[], Acceptance *acceptance) {
     stats1(buffer, stat, chars);
     stats2(stat, acceptance);
 
@@ -382,7 +382,7 @@ int stats(const char *buffer, Stats *stat, bool chars[], Acceptance *acceptance)
  * stats1() records number of unique characters among all passwords by modifying the chars bool array
  * when value print is set to true, 1s in interval <32, 126> from the boolean array are counted and stored in NCHARS
  */
-void stats1(const char *buffer, Stats *stat, bool *chars) {
+void stats1 (const char *buffer, Stats *stat, bool *chars) {
 
     if (stat->print == true) { // counts all the encountered unique characters
         for (int o = 32; o < 127; ++o) {
@@ -407,7 +407,7 @@ void stats1(const char *buffer, Stats *stat, bool *chars) {
  * and then uses stat->total and stat->sum to calculate average length of all passwords
  * the average length is stored in stat->avgc
  */
-void stats2(Stats *stat, Acceptance * acceptance) {
+void stats2 (Stats *stat, Acceptance * acceptance) {
 
     if (stat->print == true && stat->sum) {
         stat->avgc = stat->total / stat->sum;
@@ -429,7 +429,7 @@ void stats2(Stats *stat, Acceptance * acceptance) {
  * print_call() is called afterwards, where a decision about whether to print the password or not is made
  * after the while loop with fgets(), print value of Stats data structure is changed to true, signalising stats() to print statistics
  */
-int password_browser(char ** argv, Stats *stat) {
+int password_browser (char ** argv, Stats *stat) {
     char buffer[MAX_STRING_SIZE];
     long PARAM, LEVEL;
     Acceptance acceptance;
@@ -463,7 +463,7 @@ int password_browser(char ** argv, Stats *stat) {
  * the decision is saved into the count value of Stats data structure, if the count value is equal to STATS (8), then password_browser() calls stats()
  * if argv[i] that starts with --s but isn't equal to --stats, the program is terminated and an error is issued
  */
-int stats_decide(char ** argv, Stats *stat, int i) {
+int stats_decide (char ** argv, Stats *stat, int i) {
     char sts[STATS_LEN] = "--stats";
     stat->count = 0;
 
@@ -486,7 +486,7 @@ int stats_decide(char ** argv, Stats *stat, int i) {
  * bonus() initializes Bonus data structure, which is used in decision whether the program arguments are according to the bonus solution or the base one
  * functions bonus_parse_base() and bonus_decide() are called for determination of correctness and style of an input
  */
-int bonus(int argc, char **argv, Stats *stat) {
+int bonus (int argc, char **argv, Stats *stat) {
     Bonus bonus_vars;
     bonus_vars.bonus_level = false;
     bonus_vars.bonus_param = false;
@@ -576,6 +576,7 @@ int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, int argc) {
 
     return 0;
 }
+
 /*
  * bonus_parse_extend() contains a loop that looks for "-" and when it finds it, it proceeds to check for "l", "p", "-s"
  * if neither of those characters after "i" are found, an error is issued
@@ -669,6 +670,9 @@ int bonus_parse_param (int argc, char ** argv, Bonus *bonus_vars, int i, int d) 
     return 0;
 }
 
+/*
+ * control_ASCII() is called by control() and checks for presence of non-ASCII characters in a password
+ */
 int control_ASCII (const char * buffer) {
     for (int i = 0; buffer[i] != '\0' ; i++) {
         if (buffer[i] < 0 || buffer[i] > 127) {
