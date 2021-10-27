@@ -2,9 +2,6 @@
 // Created by xkalen07 on 29.09.2021.
 //
 
-//TODO make data structs to make passing of arguments easier
-//FIXME avgc, sum, total change to long long
-
 // including standard libraries
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,8 +14,8 @@
 
 typedef struct {
     int acceptance; // stores the decision whether the password follows the rule or not
-    int lowercase; // indicates whether password contains
-    int uppercase;
+    int lowercase; // indicates whether password contains a lowercase letter
+    int uppercase; // indicates whether password contains an uppercase letter
     int accept_rule2_3;
     int ekv;
     bool end_of_password;
@@ -36,7 +33,7 @@ typedef struct {
 } Stats;
 
 typedef struct {
-    int bonus_level; // stores the index of a string following the "-l" switch //TODO string instead of symbol/sign
+    int bonus_level; // stores the index of a string following the "-l" switch
     int bonus_param; // stores the index of a string following the "-p" switch
     int no_bonus_level; // stores whether the level is indicated by a switch or not
     int no_bonus_param; // stores whether the param is indicated by a switch or not
@@ -87,22 +84,22 @@ int control(const char *buffer, char **argv, long *PARAM, long *LEVEL) {
     char *b;
     char *c;
 
-    *LEVEL = strtol((const char *) argv[1], &b, 10);
-    *PARAM = strtol((const char *) argv[2], &c, 10);
+    *LEVEL = strtol(argv[1], &b, 10);
+    *PARAM = strtol(argv[2], &c, 10);
 
     if (buffer[0] == '\n'){
         return false;
-    } else if (*LEVEL > 4 ||*argv[1] < '1') { // LEVEL can only be of values 1, 2, 3 or 4
+    } else if (*LEVEL > 4 || *LEVEL < 1) { // LEVEL can only be of values 1, 2, 3 or 4
         fprintf(stderr,"Error 2: The first parameter can be of values 1-4, you have entered %c\n", *argv[1]);
         return 2;
-    } else if (*argv[2] < '1') { // every positive number has to start with at least 1, and PARAM has to be a positive number
-        fprintf(stderr, "Error 4: The second parameter has to be a positive number and not contain additional symbols other than numbers\n");
+    } else if (*PARAM < 1) { // every positive number has to start with at least 1, and PARAM has to be a positive number
+        fprintf(stderr, "Error 4: The second parameter has to be a positive number and not contain additional characters other than numbers\n");
         return 4;
     } else if (c[0] != '\0') { // PARAM can only be a number
-        fprintf(stderr, "Error 5: The second parameter contains other symbols than numbers\n");
+        fprintf(stderr, "Error 5: The second parameter contains other characters than numbers\n");
         return 5;
     } else if (b[0] != '\0') { // Level can only be a number
-        fprintf(stderr, "Error 6: The first parameter contains other symbols than only numbers\n");
+        fprintf(stderr, "Error 6: The first parameter contains other characters than only numbers\n");
         return 6;
     } else if (control_length(buffer) != 0) {
         return 3;
@@ -114,15 +111,13 @@ int control(const char *buffer, char **argv, long *PARAM, long *LEVEL) {
 }
 
 /*
- * This function is called by control() to check whether the password contained in buffer isn't longer than 100 symbols
+ * This function is called by control() to check whether the password contained in buffer isn't longer than 100 characters
  */
 int control_length(const char *buffer) {
 
     for (int length = 0; buffer[length] != '\0'; ++length) { //loop used to find out the actual length of the content of the buffer
-        char a = buffer[length];
-
-        if (length == 100 && a != '\n') { // checking for password longer than 100 symbols
-            fprintf(stderr, "Error 3: Password <%s...> is longer than 100 symbols\n", buffer);
+        if (length == 100 && buffer[length] != '\n') { // checking for password longer than 100 characters
+            fprintf(stderr, "Error 3: Password <%s...> is longer than 100 characters\n", buffer);
             return 3;
         }
     }
@@ -138,11 +133,11 @@ int rule1(const char* buffer, Acceptance *accept) {
     accept->lowercase = false;
     accept->uppercase = false; // assuming lack of both uppercase and lowercase letters
 
-    for (int i = 0; buffer[i] != '\0' && !(accept->lowercase && accept->uppercase); ++i) { // loop checking for presence of a lowercase letter
-        if (buffer[i] >= 'a' && buffer[i] <= 'z') {
+    for (int i = 0; buffer[i] != '\0' && !(accept->lowercase && accept->uppercase); ++i) {
+        if (buffer[i] >= 'a' && buffer[i] <= 'z') { // checking for presence of a lowercase letter
             accept->lowercase = true;
         }
-        if (buffer[i] >= 'A' && buffer[i] <= 'Z') { // loop checking for presence of an uppercase letter
+        if (buffer[i] >= 'A' && buffer[i] <= 'Z') { // checking for presence of an uppercase letter
             accept->uppercase = true;
         }
     }
@@ -261,7 +256,7 @@ int rule3(const char* buffer, long PARAM, Acceptance *accept) {
  * or more than 1 instance of a substring is encountered
  */
 int rule4(const char* buffer, long PARAM, Acceptance *accept) {
-    char chains[102] = {0}; // initialization of a substring
+    char chains[MAX_STRING_SIZE] = {0}; // initialization of a substring
     accept->end_of_password = false;
     if (accept->acceptance == false) { // control whether other rules let the password through
         return false;
@@ -442,16 +437,19 @@ void stats1(const char *buffer, Stats *stat, bool *chars) {
 void stats2(const char *buffer, Stats *stat) {
     int i = 0;
 
-    if (stat->print == true) {
+    if (stat->print == true && stat->sum) {
         stat->avgc = stat->total / stat->sum;
+    } else if (stat->print == true) {
+        stat->avgc = 0;
+        stat->min = 0;
     }
 
-    for (; buffer[i] != '\n' && !(stat->print); i++){
+    for (;buffer[i] != '\n' && !(stat->print); i++){ // doesn't count \n and does not start when print is true
         stat->total += 1;
     }
 
     stat->sum += 1;
-    if (i < stat->min){
+    if (i < stat->min && !(stat->print)){ // does not start when print is true
         stat->min = i;
     }
 }
@@ -470,10 +468,10 @@ int password_browser(char ** argv, Stats *stat) {
     stat->avgc = 0;
 
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) { //going through each password in stdin
-        int c = control(buffer, argv, &PARAM, &LEVEL);
+        int cnt = control(buffer, argv, &PARAM, &LEVEL);
 
-        if (c >= true) {
-            return c;
+        if (cnt >= true) {
+            return cnt;
         }
 
         if (stat->count == STATS) { //2nd layer of checking for --stats
@@ -484,10 +482,6 @@ int password_browser(char ** argv, Stats *stat) {
     }
 
     if (stat->count == STATS) { //prints stats after all passwords are parsed through
-        if (!(stat->sum)) {
-            fprintf(stderr, "Error 17: There is no password on stdin\n");
-            return 17;
-        }
         stat->print = true;
         stats(buffer, stat, characters);
     }
@@ -648,10 +642,10 @@ int bonus_parse_extend (int argc, char **argv, Bonus *bonus_vars, Stats *stats, 
                 fprintf(stderr, "Error 10: You have entered a nonexistent switch %s\n", argv[i]);
                 return 10;
             }
-        } else if ((argv[i][0] != '-' && argv[i-1][0] != '-' && argc > 4) || argv[i-1][1] == '-') { // when a sign is entered without a switch before the sign
+        } else if ((argv[i][0] != '-' && argv[i-1][0] != '-' && argc > 4) || argv[i-1][1] == '-') {
             fprintf(stderr ,"Error 13: You have entered a character without a switch\n");
             return 13;
-        }
+        } // when a character is entered without a switch before it
     }
     return  0;
 }
