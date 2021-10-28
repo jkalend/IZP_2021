@@ -40,9 +40,8 @@ typedef struct {
     int no_bonus_param; // stores whether the param is indicated by a switch or not
 } Bonus;
 
-/*
- * declaring multiple functions
- */
+
+// declaring multiple functions
 int control(const char *, char **, long *, long *, Acceptance *);
 int control_length(const char *, Acceptance *);
 int rule1(const char *, Acceptance *);
@@ -68,9 +67,8 @@ int bonus_parse_level (int, char **, Bonus *, int , int);
 int bonus_parse_param (int, char **, Bonus *, int, int);
 
 
-
 int main (int argc, char *argv[]) {
-    Stats stat = {0}; // declaration of the Stats data structure used to store information about statistics
+    Stats stat = {0};
 
     return bonus(argc, argv, &stat); // returns 0 when all goes right, returns an error code when an error is encountered
 }
@@ -88,7 +86,7 @@ int control (const char *buffer, char **argv, long *PARAM, long *LEVEL, Acceptan
 
     if (buffer[0] == '\n'){
         return false;
-    } else if (*LEVEL > 4 || *LEVEL < 1) { // LEVEL can only be of values 1, 2, 3 or 4
+    } else if (*LEVEL < 1 || *LEVEL > 4) { // LEVEL can only be of values 1, 2, 3 or 4
         fprintf(stderr,"Error 2: The first parameter can be of values 1-4, you have entered %s\n", argv[1]);
         return 2;
     } else if (*PARAM < 1) { // every positive number has to start with at least 1, and PARAM has to be a positive number
@@ -97,7 +95,7 @@ int control (const char *buffer, char **argv, long *PARAM, long *LEVEL, Acceptan
     } else if (c[0] != '\0') { // PARAM can only be a number
         fprintf(stderr, "Error 5: The second parameter contains other characters than numbers\n");
         return 5;
-    } else if (b[0] != '\0') { // Level can only be a number
+    } else if (b[0] != '\0') { // LEVEL can only be a number
         fprintf(stderr, "Error 6: The first parameter contains other characters than only numbers\n");
         return 6;
     } else {
@@ -107,16 +105,17 @@ int control (const char *buffer, char **argv, long *PARAM, long *LEVEL, Acceptan
 }
 
 /*
- * This function is called by control() to check whether the password contained in buffer isn't longer than 100 characters
+ * control_length() checks whether the password contained in buffer isn't longer than 100 characters
+ * and stores the password length into acceptance->length
  */
 int control_length (const char *buffer, Acceptance *acceptance) {
     int length = 0;
 
-    for (; buffer[length] != '\0'; ++length) { //loop used to find out the actual length of the content of the buffer
-        if (length == 100 && buffer[length] != '\n') { // checking for password longer than 100 characters
+    for (; buffer[length] != '\0'; ++length) {
+        if (length == 100 && buffer[length] != '\n') {
             fprintf(stderr, "Error 3: Password <%s...> is longer than 100 characters\n", buffer);
             return 3;
-        } else if (buffer[length] < 0 || buffer[length] > 127) {
+        } else if (buffer[length] < 0 || buffer[length] > 126) {
             fprintf(stderr, "Error 16: One of the passwords does not contain ASCII characters\n");
             return 16;
         }
@@ -135,15 +134,15 @@ int rule1 (const char* buffer, Acceptance *accept) {
     accept->uppercase = false; // assuming lack of both uppercase and lowercase letters
 
     for (int i = 0; buffer[i] != '\0' && !(accept->lowercase && accept->uppercase); ++i) {
-        if (buffer[i] >= 'a' && buffer[i] <= 'z') { // checking for presence of a lowercase letter
+        if (buffer[i] >= 'a' && buffer[i] <= 'z') {
             accept->lowercase = true;
         }
-        if (buffer[i] >= 'A' && buffer[i] <= 'Z') { // checking for presence of an uppercase letter
+        if (buffer[i] >= 'A' && buffer[i] <= 'Z') {
             accept->uppercase = true;
         }
     }
 
-    if (accept->uppercase && accept->lowercase) { // decision about overall acceptance of the password under rule 1
+    if (accept->uppercase && accept->lowercase) {
         accept->acceptance = true;
     } else {
         accept->acceptance = false;
@@ -154,28 +153,27 @@ int rule1 (const char* buffer, Acceptance *accept) {
 
 /*
  * rule 2 dictates that the password has to contain at least one character from X groups (there are 4 groups)
- * function rule2() is called by print_call() and uses the value of PARAM to decide how many groups have to be checked for
- * accordance to rule 2 up to PARAM value of 2 is decided by the return value of rule1()
+ * function rule2() uses the value of PARAM to decide how many groups have to be checked
  */
 int rule2 (const char* buffer, long PARAM, Acceptance *accept) {
     if (accept->acceptance == false) {
         return false;
     }
-    int r23, r24; // declaration of variables for rule2_3() and rule2_4()
+    int r23, r24;
 
     if (PARAM == 1 || PARAM == 2) { // for PARAMs 1 and 2, the acceptance of a password relies on rule1()
         return true;
     }
 
-    if (PARAM == 3) { // checking password for presence of at least 3 groups of requirements
-        r23 = rule2_3(buffer, accept); // numbers
-        r24 = rule2_4(buffer, accept); // special signs
+    if (PARAM == 3) {
+        r23 = rule2_3(buffer, accept);
+        r24 = rule2_4(buffer, accept);
         if (r23 == true || r24 == true) {
             accept->acceptance = true;
         }
     }
 
-    if (PARAM >= 4 ) { // checking password for presence of signs from all 4 groups, rule1() checks letters
+    if (PARAM >= 4 ) {
         r23 = rule2_3(buffer, accept);
         r24 = rule2_4(buffer, accept);
         if (!(r23 == true && r24 == true)) {
@@ -192,7 +190,7 @@ int rule2 (const char* buffer, long PARAM, Acceptance *accept) {
 int rule2_3 (const char *buffer, Acceptance *accept) {
     accept->acceptance = false;
     for (int i = 0; buffer[i] != '\0' && accept->acceptance == false; ++i) {
-        if (buffer[i] >= '0' && buffer[i] <= '9') { // checking password for numbers
+        if (buffer[i] >= '0' && buffer[i] <= '9') {
             accept->acceptance = true;
         }
     }
@@ -224,8 +222,8 @@ int rule2_4 (const char *buffer, Acceptance *accept) {
 }
 
 /*
- * rule 3 forbids passwords which contain a sequence of the same letters, length of this sequence is dictated by value of PARAM
- * function rule3() is called by print_call()
+ * rule 3 forbids passwords which contain a sequence of the same letters
+ * length of this sequence is dictated by value of PARAM
  */
 int rule3 (const char* buffer, long PARAM, Acceptance *accept) {
     if (accept->acceptance == false) {
@@ -233,16 +231,16 @@ int rule3 (const char* buffer, long PARAM, Acceptance *accept) {
     }
 
     accept->acceptance = true;
-    int letter_count = 0; // initialization of a variable that holds the count of a continuous repeats of the same character
+    int repeats = 0; // due to buffer[i-1], counter starts at 1
 
-    for (int i = 0; buffer[i] != '\0'; i++) {
-        if (i > 0 && buffer[i] == buffer[i-1]) { // when a character is same as the one before
-            letter_count++;
-        } else if (letter_count >= PARAM){ // when a character got repeated more than PARAM times
+    for (int i = 1; buffer[i] != '\0'; i++) {
+        if (buffer[i] == buffer[i-1]) {
+            repeats++;
+        } else if (repeats >= PARAM){
             accept->acceptance = false;
             return accept->acceptance;
         } else {
-            letter_count = 1; // due to buffer[i-1], counter starts at 1
+            repeats = 1;
         }
     }
 
@@ -250,22 +248,20 @@ int rule3 (const char* buffer, long PARAM, Acceptance *accept) {
 }
 
 /*
- * rule 4 forbids passwords which contain a 2 or more instances of any substring of a length set by the value PARAM
- * function rule3() is called by print_call()
  * the central loop keeps going until either the last character of a password is used to make a substring,
  * or more than 1 instance of a substring is encountered
  */
 int rule4 (const char* buffer, long PARAM, Acceptance *accept) {
-    char chains[MAX_STRING_SIZE] = {0}; // initialization of a substring
-    if (accept->acceptance == false) { // control whether other rules let the password through
+    char chains[MAX_STRING_SIZE] = {0};
+    if (accept->acceptance == false) {
         return false;
     }
-    accept->ekv = 0; // initialization of the ekv variable
+    accept->ekv = 0;
 
     for (int u = 0; u <= accept->length - PARAM && accept->ekv < 2; u++) {
-        sub_maker(buffer, PARAM, u, chains); // called to make a substring
-        accept->ekv = 0; // reset of the ekv variable
-        rule4_loop(buffer, accept, PARAM, chains); // loop to check for occurrences of the substring in a password
+        sub_maker(buffer, PARAM, u, chains);
+        accept->ekv = 0;
+        rule4_loop(buffer, accept, PARAM, chains);
     }
 
     return (accept->ekv < 2);
@@ -287,7 +283,7 @@ void sub_maker (const char * buffer, long PARAM, int u, char * chains) {
  * a loop going through the password looking for the same substring
  */
 void rule4_loop (const char *buffer, Acceptance *accept, long PARAM, const char * chains) {
-    for (long o = PARAM - 1; buffer[o] != '\n'; o++) { //looping over the password
+    for (long o = PARAM - 1; buffer[o] != '\n'; o++) {
         int match = 0;
 
         if (chains[PARAM-1] == buffer[o]) { //checks the position o for the presence of the last letter of the substring
