@@ -45,7 +45,6 @@ typedef struct {
  */
 int control(const char *, char **, long *, long *, Acceptance *);
 int control_length(const char *, Acceptance *);
-int control_ASCII(const char *);
 int rule1(const char *, Acceptance *);
 int rule2(const char *, long, Acceptance *);
 int rule2_3(const char *, Acceptance *);
@@ -101,13 +100,10 @@ int control (const char *buffer, char **argv, long *PARAM, long *LEVEL, Acceptan
     } else if (b[0] != '\0') { // Level can only be a number
         fprintf(stderr, "Error 6: The first parameter contains other characters than only numbers\n");
         return 6;
-    } else if (control_length(buffer, acceptance) != 0) {
-        return 3;
-    } else if (control_ASCII(buffer) != 0) {
-        return 16;
+    } else {
+        return control_length(buffer, acceptance);
     }
 
-    return false;
 }
 
 /*
@@ -120,6 +116,9 @@ int control_length (const char *buffer, Acceptance *acceptance) {
         if (length == 100 && buffer[length] != '\n') { // checking for password longer than 100 characters
             fprintf(stderr, "Error 3: Password <%s...> is longer than 100 characters\n", buffer);
             return 3;
+        } else if (buffer[length] < 0 || buffer[length] > 127) {
+            fprintf(stderr, "Error 16: One of the passwords does not contain ASCII characters\n");
+            return 16;
         }
     }
     acceptance->length = length - 1;
@@ -661,20 +660,6 @@ int bonus_parse_param (int argc, char ** argv, Bonus *bonus_vars, int i, int d) 
 
     bonus_vars->bonus_param = i+1;
     bonus_vars->no_bonus_param = false;
-
-    return 0;
-}
-
-/*
- * control_ASCII() is called by control() and checks for presence of non-ASCII characters in a password
- */
-int control_ASCII (const char * buffer) {
-    for (int i = 0; buffer[i] != '\0' ; i++) {
-        if (buffer[i] < 0 || buffer[i] > 127) {
-            fprintf(stderr, "Error 16: One of the passwords does not contain ASCII characters\n");
-            return 16;
-        }
-    }
 
     return 0;
 }
