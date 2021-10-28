@@ -162,7 +162,7 @@ int rule2 (const char* buffer, long PARAM, Acceptance *accept) {
     if (accept->acceptance == false) {
         return false;
     }
-    int r23 = 0, r24 = 0; // declaration of variables for rule2_3() and rule2_4()
+    int r23, r24; // declaration of variables for rule2_3() and rule2_4()
 
     if (PARAM == 1 || PARAM == 2) { // for PARAMs 1 and 2, the acceptance of a password relies on rule1()
         return true;
