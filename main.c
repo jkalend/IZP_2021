@@ -71,8 +71,7 @@ int bonus_parse_param (int, char **, Bonus *, int, int);
 
 
 int main (int argc, char *argv[]) {
-    Stats stat; // declaration of the Stats data structure used to store information about statistics
-    stat.NCHARS = 0; // initialization of int NCHARS, it is important to start with a 0 value
+    Stats stat = {0}; // declaration of the Stats data structure used to store information about statistics
 
     return bonus(argc, argv, &stat); // returns 0 when all goes right, returns an error code when an error is encountered
 }
@@ -83,6 +82,7 @@ int main (int argc, char *argv[]) {
 int control (const char *buffer, char **argv, long *PARAM, long *LEVEL, Acceptance * acceptance) {
     char *b;
     char *c;
+    acceptance->length = 0;
 
     *LEVEL = strtol(argv[1], &b, 10);
     *PARAM = strtol(argv[2], &c, 10);
@@ -162,8 +162,7 @@ int rule2 (const char* buffer, long PARAM, Acceptance *accept) {
     if (accept->acceptance == false) {
         return false;
     }
-    int r23;
-    int r24; // declaration of variables for rule2_3() and rule2_4()
+    int r23 = 0, r24 = 0; // declaration of variables for rule2_3() and rule2_4()
 
     if (PARAM == 1 || PARAM == 2) { // for PARAMs 1 and 2, the acceptance of a password relies on rule1()
         return true;
@@ -266,7 +265,6 @@ int rule4 (const char* buffer, long PARAM, Acceptance *accept) {
 
     for (int u = 0; u <= accept->length - PARAM && accept->ekv < 2; u++) {
         sub_maker(buffer, PARAM, u, chains); // called to make a substring
-        printf("\n");
         accept->ekv = 0; // reset of the ekv variable
         rule4_loop(buffer, accept, PARAM, chains); // loop to check for occurrences of the substring in a password
     }
@@ -431,11 +429,10 @@ void stats2 (Stats *stat, Acceptance * acceptance) {
  */
 int password_browser (char ** argv, Stats *stat) {
     char buffer[MAX_STRING_SIZE];
-    long PARAM, LEVEL;
-    Acceptance acceptance;
-    bool characters['~'] = {0};
+    long PARAM = 0, LEVEL = 0;
+    Acceptance acceptance = {0};
+    bool characters[127] = {0}; // 127 for ASCII 126 + '\0'
     stat->min = 100;
-    stat->avgc = 0;
 
     while (fgets(buffer, sizeof(buffer), stdin) != NULL) { //going through each password in stdin
         int cnt = control(buffer, argv, &PARAM, &LEVEL, &acceptance);
@@ -465,7 +462,6 @@ int password_browser (char ** argv, Stats *stat) {
  */
 int stats_decide (char ** argv, Stats *stat, int i) {
     char sts[STATS_LEN] = "--stats";
-    stat->count = 0;
 
     if (stat->stats == true) {
         for (int pp = 0; argv[i][pp] != '\0'; ++pp) {
@@ -492,7 +488,6 @@ int bonus (int argc, char **argv, Stats *stat) {
     bonus_vars.bonus_param = false;
     bonus_vars.no_bonus_level = true;
     bonus_vars.no_bonus_param = true;
-    stat->stats = false;
 
     int bp = bonus_parse_base(argc, argv, &bonus_vars, stat);
     if (bp != false) {
