@@ -1,7 +1,8 @@
-//
-// Created by xkalen07 on 29.09.2021.
-// IZP project 1
-//
+//////////////////////////////////////////
+/// Created by xkalen07 on 29.09.2021. ///
+/// by Jan Kalenda                     ///
+/// IZP project 1                      ///
+//////////////////////////////////////////
 
 // including standard libraries
 #include <stdio.h>
@@ -13,6 +14,7 @@
 #define STATS_LEN 8
 #define STATS 7
 
+// struct declarations
 typedef struct {
     int acceptance; // stores the decision whether the password follows the rule or not
     int lowercase; // indicates whether password contains a lowercase letter
@@ -70,7 +72,7 @@ int bonus_parse_param (int, char **, Bonus *, int, int);
 int main (int argc, char *argv[]) {
     Stats stat = {0};
 
-    return bonus(argc, argv, &stat); // returns 0 when all goes right, returns an error code when an error is encountered
+    return bonus(argc, argv, &stat); // returns an error code when an error is encountered
 }
 
 /*
@@ -281,16 +283,17 @@ void sub_maker (const char * buffer, long PARAM, int u, char * chains) {
 
 /*
  * a loop going through the password looking for the same substring
+ * substrings are controlled based on the match of their last character
  */
 void rule4_loop (const char *buffer, Acceptance *accept, long PARAM, const char * chains) {
     for (long o = PARAM - 1; buffer[o] != '\n'; o++) {
         int match = 0;
 
-        if (chains[PARAM-1] == buffer[o]) { //checks the position o for the presence of the last letter of the substring
-            long d = PARAM - 1; //for parsing through the substring
+        if (chains[PARAM-1] == buffer[o]) {
+            long d = PARAM - 1;
 
-            for (long c = o; d > (-1); c--) { // checks other letters in the substring
-                if (chains[d] == buffer[c]) { // due to d--, the suspected substring is checked from the back
+            for (long c = o; d > (-1); c--) {
+                if (chains[d] == buffer[c]) {
                     d--;
                     match++;
                 } else {
@@ -377,14 +380,14 @@ int stats (const char *buffer, Stats *stat, bool chars[], Acceptance *acceptance
  */
 void stats1 (const char *buffer, Stats *stat, bool *chars) {
 
-    if (stat->print == true) { // counts all the encountered unique characters
+    if (stat->print == true) {
         for (int o = 32; o < 127; ++o) {
             if (chars[o] == true) {
                 stat->NCHARS++;
             }
         }
-    } else { // only when print command is not issued
-        for (int i = 0; buffer[i] != '\0'; ++i) { // looks for new unique characters
+    } else {
+        for (int i = 0; buffer[i] != '\0'; ++i) {
             int value = (int) buffer[i] ;
             if (chars[value] == false) {
                 chars[value] = true;
@@ -411,7 +414,7 @@ void stats2 (Stats *stat, Acceptance * acceptance) {
 
     stat->total += acceptance->length;
     stat->sum += 1;
-    if (acceptance->length < stat->min && !(stat->print)){ // does not start when print is true
+    if (acceptance->length < stat->min && !(stat->print)){
         stat->min = acceptance->length;
     }
 }
@@ -429,7 +432,7 @@ int password_browser (char ** argv, Stats *stat) {
     bool characters[127] = {0}; // 127 for ASCII 126 + '\0'
     stat->min = 100;
 
-    while (fgets(buffer, sizeof(buffer), stdin) != NULL) { //going through each password in stdin
+    while (fgets(buffer, sizeof(buffer), stdin) != NULL) {
         int cnt = control(buffer, argv, &PARAM, &LEVEL, &acceptance);
 
         if (cnt >= true) {
@@ -442,7 +445,7 @@ int password_browser (char ** argv, Stats *stat) {
         print_call(buffer, LEVEL, PARAM, &acceptance);
     }
 
-    if (stat->count == STATS) { //prints stats after all passwords are parsed through
+    if (stat->count == STATS) {
         stat->print = true;
         stats(buffer, stat, characters, &acceptance);
     }
@@ -542,20 +545,20 @@ int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) {
  */
 int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, int argc) {
     if (bonus_vars->bonus_level > 0) {
-        argv[1] = argv[bonus_vars->bonus_level]; //assigns the -l switch value as a LEVEL for password_browser()
+        argv[1] = argv[bonus_vars->bonus_level]; // assigns the -l switch value as a LEVEL for password_browser()
     } else if (bonus_vars->no_bonus_level && argc == 4 && !(stats->stats)) { // when input doesn't follow basic input or bonus input and mixes them
         fprintf(stderr, "Error 15: Invalid input");
         return 15;
-    } else if (argc <= 2 || bonus_vars->bonus_param) { //when no arguments are entered or only -p switch with a value is entered
+    } else if (argc <= 2 || bonus_vars->bonus_param) { // when no arguments are entered or only -p switch with a value is entered
         argv[1] = "1";
     }
 
     if (bonus_vars->bonus_param > 0) {
-        argv[2] = argv[bonus_vars->bonus_param]; //assigns the -p switch value as a PARAM for password_browser()
+        argv[2] = argv[bonus_vars->bonus_param]; // assigns the -p switch value as a PARAM for password_browser()
     } else if (bonus_vars->no_bonus_param && argc == 4 && !(stats->stats)) { // when input doesn't follow basic input or bonus input and mixes them
         fprintf(stderr, "Error 15: Invalid input");
         return 15;
-    } else if (argc <= 2 || bonus_vars->bonus_level) { //when no arguments are entered or only -l switch with a value is entered
+    } else if (argc <= 2 || bonus_vars->bonus_level) { // when no arguments are entered or only -l switch with a value is entered
         argv[2] = "1";
     }
 
@@ -605,13 +608,13 @@ int bonus_parse_extend (int argc, char **argv, Bonus *bonus_vars, Stats *stats, 
         } else if ((argv[i][0] != '-' && argv[i-1][0] != '-' && argc > 4) || argv[i-1][1] == '-') {
             fprintf(stderr ,"Error 13: You have entered a character without a switch\n");
             return 13;
-        } // when a character is entered without a switch before it
+        }
     }
     return  0;
 }
 
 /*
- * bonus_parse_level() looks for a character after the "-l" switch
+ * bonus_parse_level() looks for characters after the "-l" switch
  */
 int bonus_parse_level (int argc, char ** argv, Bonus *bonus_vars, int i, int d) {
     if (i+1 == argc) {
@@ -636,7 +639,7 @@ int bonus_parse_level (int argc, char ** argv, Bonus *bonus_vars, int i, int d) 
 }
 
 /*
- * bonus_parse_param() looks for a character after the "-p" switch
+ * bonus_parse_param() looks for characters after the "-p" switch
  */
 int bonus_parse_param (int argc, char ** argv, Bonus *bonus_vars, int i, int d) {
     if (i+1 == argc) {
