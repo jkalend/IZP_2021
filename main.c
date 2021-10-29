@@ -233,7 +233,7 @@ int rule3 (const char* buffer, long PARAM, Acceptance *accept) {
     }
 
     accept->acceptance = true;
-    int repeats = 0; // due to buffer[i-1], counter starts at 1
+    int repeats = 1; // due to buffer[i-1], counter starts at 1
 
     for (int i = 1; buffer[i] != '\0'; i++) {
         if (buffer[i] == buffer[i-1]) {
