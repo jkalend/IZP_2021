@@ -129,7 +129,7 @@ int control_length (const char *buffer, Acceptance *acceptance) {
 
 /*
  * rule 1 dictates that the password has to contain at least 1 lowercase and 1 uppercase letter
- * function rule1() is called by print_call() and loops through buffer to decide about correctness of the password under rule 1
+ * function rule1() loops through buffer to decide about correctness of the password under rule 1
  */
 int rule1 (const char* buffer, Acceptance *accept) {
     accept->lowercase = false;
@@ -316,14 +316,14 @@ int print_call (const char *buffer, long LEVEL, long PARAM, Acceptance *acceptan
     int r1 = true;
     int r2 = true;
     int r3 = true;
-    int r4 = true; //assuming a password follows all the rules
+    int r4 = true; // assuming a password follows all the rules
 
     if (LEVEL == 1) {
         r1 = rule1(buffer, acceptance);
         if (r1) {
             printf("%s", buffer);
         }
-    } //level 1
+    }
 
     if (LEVEL == 2) {
         r1 = rule1(buffer, acceptance);
@@ -332,7 +332,7 @@ int print_call (const char *buffer, long LEVEL, long PARAM, Acceptance *acceptan
             printf("%s", buffer);
         }
 
-    } //level 2
+    }
 
     if (LEVEL == 3) {
         r1 = rule1(buffer, acceptance);
@@ -341,7 +341,7 @@ int print_call (const char *buffer, long LEVEL, long PARAM, Acceptance *acceptan
         if (r1 && r2 && r3) {
             printf("%s", buffer);
         }
-    } //level 3
+    }
 
     if (LEVEL == 4) {
         r1 = rule1(buffer, acceptance);
@@ -351,7 +351,7 @@ int print_call (const char *buffer, long LEVEL, long PARAM, Acceptance *acceptan
         if (r1 && r2 && r3 && r4){
             printf("%s", buffer);
         }
-    } //level 4
+    }
 
     return 0;
 }
@@ -421,9 +421,11 @@ void stats2 (Stats *stat, Acceptance * acceptance) {
 
 /*
  * password_browser() is a central function containing fgets() which saves the content of stdin into a buffer
- * each password is firstly checked by control(), if --stats are called, stats() take care of collecting statistical data
+ * each password is firstly checked by control()
+ * if --stats are called, stats() take care of collecting statistical data
  * print_call() is called afterwards, where a decision about whether to print the password or not is made
- * after the while loop with fgets(), print value of Stats data structure is changed to true, signalising stats() to print statistics
+ * after the fgets() loop print value of Stats data structure is changed to true
+ * signalising stats() to print statistics
  */
 int password_browser (char ** argv, Stats *stat) {
     char buffer[MAX_STRING_SIZE];
@@ -455,7 +457,8 @@ int password_browser (char ** argv, Stats *stat) {
 
 /*
  * stats_decide() decides whether the string in argv[i] that starts with --s is truly --stats or not
- * the decision is saved into the count value of Stats data structure, if the count value is equal to STATS (8), then password_browser() calls stats()
+ * the decision is saved into the count value of Stats data structure
+ * if the count value is equal to STATS (8), then password_browser() calls stats()
  * if argv[i] that starts with --s but isn't equal to --stats, the program is terminated and an error is issued
  */
 int stats_decide (char ** argv, Stats *stat, int i) {
@@ -477,7 +480,6 @@ int stats_decide (char ** argv, Stats *stat, int i) {
 
 /*
  * bonus() is called by main() and returns any error codes back to main
- * bonus() initializes Bonus data structure, which is used in decision whether the program arguments are according to the bonus solution or the base one
  * functions bonus_parse_base() and bonus_decide() are called for determination of correctness and style of an input
  */
 int bonus (int argc, char **argv, Stats *stat) {
@@ -502,7 +504,7 @@ int bonus (int argc, char **argv, Stats *stat) {
 }
 
 /*
- * bonus_control() is called by bonus_parse_level() and bonus_parse_param() and checks whether the switches are truly correct or not
+ * bonus_control() and checks whether the switches are correct or not
  */
 int bonus_control (char **argv, int i) {
     int count = 0;
@@ -529,12 +531,12 @@ int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) {
                return extended;
            }
         }
-    } // loop parsing arguments for -l - p
+    }
 
-    if (argc == 2 && !(bonus_vars->bonus_level) && !(bonus_vars->bonus_param) && !(stats->stats)) { //when only 1 parameter is entered and is not a switch or --stats
+    if (argc == 2 && !(bonus_vars->bonus_level) && !(bonus_vars->bonus_param) && !(stats->stats)) {
         fprintf(stderr, "Error 15: Invalid input");
         return 15;
-    }
+    } // when only 1 parameter is entered and is not a switch or --stats
 
     return 0;
 }
@@ -546,20 +548,20 @@ int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) {
 int bonus_decide (Bonus *bonus_vars,Stats *stats, char **argv, int argc) {
     if (bonus_vars->bonus_level > 0) {
         argv[1] = argv[bonus_vars->bonus_level]; // assigns the -l switch value as a LEVEL for password_browser()
-    } else if (bonus_vars->no_bonus_level && argc == 4 && !(stats->stats)) { // when input doesn't follow basic input or bonus input and mixes them
+    } else if (bonus_vars->no_bonus_level && argc == 4 && !(stats->stats)) {
         fprintf(stderr, "Error 15: Invalid input");
-        return 15;
-    } else if (argc <= 2 || bonus_vars->bonus_param) { // when no arguments are entered or only -p switch with a value is entered
-        argv[1] = "1";
+        return 15; // when input doesn't follow basic input or bonus input and mixes them
+    } else if (argc <= 2 || bonus_vars->bonus_param) {
+        argv[1] = "1"; // when no arguments are entered or only -p switch with a value is entered
     }
 
     if (bonus_vars->bonus_param > 0) {
         argv[2] = argv[bonus_vars->bonus_param]; // assigns the -p switch value as a PARAM for password_browser()
-    } else if (bonus_vars->no_bonus_param && argc == 4 && !(stats->stats)) { // when input doesn't follow basic input or bonus input and mixes them
+    } else if (bonus_vars->no_bonus_param && argc == 4 && !(stats->stats)) {
         fprintf(stderr, "Error 15: Invalid input");
-        return 15;
-    } else if (argc <= 2 || bonus_vars->bonus_level) { // when no arguments are entered or only -l switch with a value is entered
-        argv[2] = "1";
+        return 15; // when input doesn't follow basic input or bonus input and mixes them
+    } else if (argc <= 2 || bonus_vars->bonus_level) {
+        argv[2] = "1"; // when no arguments are entered or only -l switch with a value is entered
     }
 
     int pb = password_browser(argv, stats);
