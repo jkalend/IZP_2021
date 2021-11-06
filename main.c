@@ -363,7 +363,6 @@ int print_call (const char *buffer, long LEVEL, long PARAM, Acceptance *acceptan
 int stats (const char *buffer, Stats *stat, bool chars[], Acceptance *acceptance) {
     stats1(buffer, stat, chars);
     stats2(stat, acceptance);
-
     if (stat->print == true) {
         printf("Statistika:\n");
         printf("Ruznych znaku: %d\n", stat->NCHARS);
@@ -380,6 +379,7 @@ int stats (const char *buffer, Stats *stat, bool chars[], Acceptance *acceptance
  */
 void stats1 (const char *buffer, Stats *stat, bool *chars) {
 
+
     if (stat->print == true) {
         for (int o = 32; o < 127; ++o) {
             if (chars[o] == true) {
@@ -391,6 +391,13 @@ void stats1 (const char *buffer, Stats *stat, bool *chars) {
             int value = (int) buffer[i] ;
             if (chars[value] == false) {
                 chars[value] = true;
+            }
+        }
+    } else {
+        for (int i = 0; buffer[i] != '\0'; ++i) {
+            int placeholder = (int) buffer[i];
+            if (chars[placeholder] == FALSE) {
+                chars[placeholder] = TRUE;
             }
         }
     }
