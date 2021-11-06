@@ -143,7 +143,6 @@ int rule1 (const char* buffer, Acceptance *accept) {
             accept->uppercase = true;
         }
     }
-
     if (accept->uppercase && accept->lowercase) {
         accept->acceptance = true;
     } else {
@@ -378,8 +377,6 @@ int stats (const char *buffer, Stats *stat, bool chars[], Acceptance *acceptance
  * when value print is set to true, 1s in interval <32, 126> from the boolean array are counted and stored in NCHARS
  */
 void stats1 (const char *buffer, Stats *stat, bool *chars) {
-
-
     if (stat->print == true) {
         for (int o = 32; o < 127; ++o) {
             if (chars[o] == true) {
@@ -532,7 +529,6 @@ int bonus_control (char **argv, int i) {
 int bonus_parse_base (int argc, char **argv, Bonus *bonus_vars, Stats *stats) {
     for (int i = 0; i < argc; i++) {
         if (i > 0) {
-
            int extended = bonus_parse_extend(argc, argv, bonus_vars, stats, i);
            if (extended != false) {
                return extended;
