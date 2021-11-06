@@ -42,7 +42,6 @@ typedef struct {
     int no_bonus_param; // stores whether the param is indicated by a switch or not
 } Bonus;
 
-
 // declaring multiple functions
 int control(const char *, char **, long *, long *, Acceptance *);
 int control_length(const char *, Acceptance *);
@@ -67,7 +66,6 @@ int bonus_decide (Bonus *, Stats *, char **, int);
 int bonus_parse_extend (int, char **, Bonus *, Stats *, int);
 int bonus_parse_level (int, char **, Bonus *, int , int);
 int bonus_parse_param (int, char **, Bonus *, int, int);
-
 
 int main (int argc, char *argv[]) {
     Stats stat = {0};
@@ -330,7 +328,6 @@ int print_call (const char *buffer, long LEVEL, long PARAM, Acceptance *acceptan
         if (r1 && r2) {
             printf("%s", buffer);
         }
-
     }
 
     if (LEVEL == 3) {
