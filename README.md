@@ -11,4 +11,5 @@ Compiled through: `$ gcc -std=c99 -Wall -Wextra -Werror pwcheck.c -o pwcheck`
 Started by: `$ ./pwcheck [-l LEVEL] [-p PARAM] [--stats] <passwords.txt`
 
 LEVEL = an integer from intereval 1-4
+
 PARAM = a positive integer
